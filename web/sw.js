@@ -1,0 +1,39 @@
+/* Offline-Speicher und Updates der Web-App (iPhone/PWA). */
+const VERSION = '__VERSION__';
+const CACHE = 'tia-mathe-' + VERSION;
+const ASSETS = [
+  './', 'index.html', 'manifest.webmanifest', 'css/style.css',
+  'js/version.js', 'js/mathcore.js', 'js/figs.js', 'js/art.js', 'js/topics8.js', 'js/topics9.js', 'js/topics10.js', 'js/check.js', 'js/app.js',
+  'fonts/bangers.woff2', 'fonts/nunito.woff2',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+];
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((a) => new Request(a, { cache: 'reload' })))));
+});
+
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('tia-mathe-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.endsWith('version.json')) {
+    e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })));
+    return;
+  }
+  e.respondWith(
+    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+      return res;
+    }).catch(() => caches.match('index.html')))
+  );
+});

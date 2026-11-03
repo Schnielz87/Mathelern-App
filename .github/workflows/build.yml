@@ -1,0 +1,92 @@
+# Baut bei jedem Push die Android-App (APK), veroeffentlicht sie als GitHub-Release
+# (davon holt sich die App ihre Updates) und stellt die Web-App fuers iPhone online (GitHub Pages).
+# Version = 1.0.<Laufnummer>. Diese Datei nicht umbenennen, sonst beginnt die Zaehlung neu.
+name: Build & Release
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Version setzen
+        run: |
+          VERSION="1.0.${{ github.run_number }}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          sed -i "s/__VERSION__/$VERSION/g" web/js/version.js web/sw.js web/version.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Aufgaben-Test (alle Themen)
+        run: node tests/content.test.js
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;36.0.0" > /dev/null
+
+      - name: Signaturschluessel einrichten
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Secret SIGNING_KEYSTORE_BASE64 fehlt (siehe README, Abschnitt Signatur)."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "SIGNING_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: APK bauen
+        env:
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName=$VERSION --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk Tias-Mathe-Quest.apk
+
+      - name: GitHub-Release veroeffentlichen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v$VERSION" Tias-Mathe-Quest.apk ANLEITUNG.md \
+            --target "$GITHUB_SHA" \
+            --title "Tias Mathe-Quest $VERSION" \
+            --notes "Neue Version von Tias Mathe-Quest. Schon installiert? Die App meldet sich von selbst – einfach auf „Jetzt aktualisieren“ tippen. Neu installieren: Tias-Mathe-Quest.apk auf dem Handy öffnen (siehe ANLEITUNG.md)." \
+            --latest
+
+      - name: Web-App (iPhone) auf GitHub Pages veroeffentlichen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd web
+          touch .nojekyll
+          git init -q -b gh-pages
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Web-App $VERSION"
+          git push -f -q "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+          # GitHub Pages einschalten (falls noch nicht geschehen; klappt nur mit passenden Rechten)
+          gh api "repos/${GITHUB_REPOSITORY}/pages" -X POST -f "source[branch]=gh-pages" -f "source[path]=/" > /dev/null 2>&1 || true
