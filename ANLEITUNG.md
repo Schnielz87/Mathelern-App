@@ -58,3 +58,7 @@ Startseite → **„Frag Kiko“** → **Einrichten**:
 - **iPhone:** API-Schlüssel (Gemini, OpenAI oder Anthropic).
 
 Kiko beantwortet Mathe-Fragen, erklärt Hausaufgaben **an der Tafel** und sagt nach Fehlern **„Warum?“**.
+
+Ist die KI eingerichtet, gibt es in jeder Aufgabe den Knopf **„🦊 Kiko, wie geht das?“**: Kiko erklärt den Lösungsweg
+genau dieser Aufgabe **per Sprache** in einem kleinen **Bild-in-Bild-Fenster** (verschiebbar, mit ⤢ auf Vollbild).
+Das Ergebnis verrät Kiko nicht – den letzten Schritt rechnet Tia selbst.

@@ -368,3 +368,23 @@ input, textarea, select { -webkit-user-select: text; user-select: text; }
 .ptip > span { font-size: 24px; flex: none; }
 .chips.cheer { justify-content: flex-start; }
 #chatbox .bubble { font-size: 16px; }
+
+/* Bild-in-Bild (Kiko erklärt per KI) */
+#board.mini { inset: calc(8px + env(safe-area-inset-top)) 8px auto auto; width: min(62vw, 330px); height: min(40vh, 340px); padding: 6px; border: 3px solid var(--ink);
+  border-radius: 16px; box-shadow: 6px 6px 0 var(--ink); z-index: 85; animation: pop .3s cubic-bezier(.2, 1.6, .4, 1); }
+#board.mini .bhead { cursor: grab; touch-action: none; }
+#board.mini .btitle { font-size: 15px; }
+#board.mini .bbtn { width: 34px; height: 34px; font-size: 15px; box-shadow: 2px 2px 0 var(--ink); }
+#board.mini .bbtn.big { width: 40px; height: 40px; }
+#board.mini .bctl { gap: 8px; margin-top: 4px; }
+#board.mini .paper { margin: 4px 0; padding: 8px 6px 30px 28px; background-size: 15px 15px, 15px 15px, 100% 100%;
+  background-image: linear-gradient(rgba(70, 130, 220, .22) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 130, 220, .22) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 20px, rgba(230, 57, 70, .45) 20px, rgba(230, 57, 70, .45) 22px, transparent 22px); }
+#board.mini .bl { font-size: 19px; line-height: 30px; min-height: 30px; }
+#board.mini .bl.h { font-size: 22px; } #board.mini .bl.eq, #board.mini .bl.res { font-size: 21px; } #board.mini .bl.n { font-size: 17px; line-height: 25px; }
+#board.mini .pen { font-size: 20px; }
+#board.mini .bkiko { width: 38px; height: 38px; }
+#board.mini .bfoot { min-height: 40px; }
+#board.mini .bsub { font-size: 12px; max-height: 52px; padding: 4px 6px; }
+.askkiko { margin-top: 10px; background: linear-gradient(135deg, #ffd23f, #ff5fa2); }
+.askkiko .small { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0; }

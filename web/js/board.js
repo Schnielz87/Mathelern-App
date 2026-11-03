@@ -162,7 +162,7 @@
     el = document.createElement('div');
     el.id = 'board';
     el.innerHTML = `
-      <div class="bhead"><span class="btitle"></span><button class="bbtn" data-b="close" aria-label="Schließen">✕</button></div>
+      <div class="bhead"><span class="btitle"></span><button class="bbtn" data-b="size" aria-label="Größe ändern">⤢</button><button class="bbtn" data-b="close" aria-label="Schließen">✕</button></div>
       <div class="paper"><div class="lines"></div><div class="pen">✏️</div></div>
       <div class="bfoot">
         <div class="bkiko"></div>
@@ -178,17 +178,38 @@
       const b = e.target.closest('[data-b]'); if (!b) return;
       const a = b.dataset.b;
       if (a === 'close') close();
+      if (a === 'size') { el.classList.toggle('mini'); el.style.left = el.style.top = ''; el.style.right = el.style.bottom = ''; }
       if (a === 'pause') { paused = !paused; b.textContent = paused ? '▶' : '⏸'; if (paused) SPEECH.stop(); }
       if (a === 'restart') { SPEECH.stop(); start(0); }
       if (a === 'next') { SPEECH.stop(); skip = true; }
       if (a === 'mute') { SPEECH.muted = !SPEECH.muted; b.textContent = SPEECH.muted ? '🔇' : '🔊'; if (SPEECH.muted) SPEECH.stop(); try { localStorage.setItem('tmqMute', SPEECH.muted ? '1' : ''); } catch (er) { /* egal */ } }
     });
+    // Bild-in-Bild-Fenster an der Kopfzeile verschieben
+    const head = el.querySelector('.bhead');
+    let drag = null;
+    head.addEventListener('pointerdown', (e) => {
+      if (!el.classList.contains('mini') || e.target.closest('[data-b]')) return;
+      const r = el.getBoundingClientRect();
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const w = el.offsetWidth, h = el.offsetHeight;
+      el.style.left = Math.max(0, Math.min(innerWidth - w, e.clientX - drag.dx)) + 'px';
+      el.style.top = Math.max(0, Math.min(innerHeight - h, e.clientY - drag.dy)) + 'px';
+      el.style.right = el.style.bottom = 'auto';
+    });
+    head.addEventListener('pointerup', () => { drag = null; });
     return el;
   }
   let skip = false;
 
-  function open(steps, title) {
+  /** opts.mini: als kleines Bild-in-Bild-Fenster über der Aufgabe öffnen. */
+  function open(steps, title, opts = {}) {
     ensure();
+    el.classList.toggle('mini', !!opts.mini);
+    if (!opts.mini) el.style.left = el.style.top = el.style.right = el.style.bottom = '';
     try { SPEECH.muted = localStorage.getItem('tmqMute') === '1'; } catch (e) { /* egal */ }
     el.querySelector('[data-b="mute"]').textContent = SPEECH.muted ? '🔇' : '🔊';
     el.querySelector('[data-b="pause"]').textContent = '⏸';
@@ -241,7 +262,7 @@
   /** Lange Sätze in Heftzeilen aufteilen, damit jede Zeile einzeln geschrieben wird. */
   function wrap(ln) {
     const paper = el.querySelector('.paper');
-    const px = ln.k === 'h' ? 33 : ln.k === 'n' ? 25 : 31;
+    const px = (ln.k === 'h' ? 33 : ln.k === 'n' ? 25 : 31) * (el.classList.contains('mini') ? 0.66 : 1);
     const max = Math.max(14, Math.floor((paper.clientWidth - 70) / (px * 0.43)));
     if (ln.t.length <= max) return [ln];
     const out = []; let cur = '';
@@ -279,6 +300,7 @@
     });
   }
 
-  root.BOARD = { open, close, fromTask, fromLearn, fromAi, sayMath, textOf, SPEECH };
+  const isOpen = () => opened;
+  root.BOARD = { open, close, isOpen, fromTask, fromLearn, fromAi, sayMath, textOf, SPEECH };
   if (typeof module !== 'undefined' && module.exports) module.exports = root.BOARD;
 })(typeof window !== 'undefined' ? window : globalThis);

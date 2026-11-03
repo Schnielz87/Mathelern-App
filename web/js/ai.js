@@ -272,5 +272,31 @@ Verwende 4 bis 10 Schritte. Der erste Schritt schreibt die Aufgabe auf, der letz
     });
   }
 
-  root.AI = { status, ask, viewChat, viewSettings, explainMistake, parseBoard, persona };
+  /** In einer Aufgabe: "Kiko, wie geht das?" – KI erklärt den Lösungsweg per Sprache im Bild-in-Bild-Fenster.
+      Das Endergebnis wird nicht verraten. */
+  async function explainTask(task, topic) {
+    const { BOARD, CHECK } = root;
+    const title = `🦊 Kiko erklärt: ${topic.title}`;
+    BOARD.open([{ say: 'Moment, ich schau mir deine Aufgabe an!', lines: [{ t: 'Kiko denkt nach …', k: 'n' }] }], title, { mini: true });
+    const q = BOARD.textOf(task.q) + (task.kind === 'mc' ? ' Auswahl: ' + task.choices.map(BOARD.textOf).join(' | ') : '');
+    const prompt = `Erkläre mir Schritt für Schritt, WIE man diese Aufgabe löst (Thema: ${topic.title}):\n${q}${task.unit ? ' (Einheit: ' + task.unit + ')' : ''}
+Zur Kontrolle für dich (NICHT verraten!): Lösung ${CHECK.answerText(task)}. Musterweg: ${(task.steps || []).map(BOARD.textOf).join(' | ')}
+Wichtig: Zeige den Weg so, dass ich ihn verstehe. Rechne NICHT bis zum Endergebnis – der letzte Schritt sagt mir, was ich jetzt selbst ausrechnen soll.`;
+    const rules = BOARD_RULES.replace('der letzte das Ergebnis.', 'der letzte Schritt fordert Tia auf, das Ergebnis selbst auszurechnen (ohne es zu nennen).');
+    try {
+      const ans = await ask(persona() + rules, [{ u: true, t: prompt }]);
+      if (!BOARD.isOpen()) return;
+      const b = parseBoard(ans);
+      if (!b) throw new Error('Unerwartete Antwort');
+      BOARD.open(BOARD.fromAi(b.steps.map((x) => ({ write: x.write, say: BOARD.sayMath(x.say) })), b.title || topic.title), title, { mini: true });
+    } catch (e) {
+      if (!BOARD.isOpen()) return;
+      // Ohne Verbindung: Kiko rechnet offline eine ähnliche Aufgabe vor
+      const steps = BOARD.fromTask(topic.gen.call(topic, 2), topic);
+      steps.unshift({ say: 'Die KI ist gerade nicht erreichbar. Ich zeige dir stattdessen eine ähnliche Aufgabe.', lines: [{ t: '😕 ' + e.message, k: 'n', c: 'p' }] });
+      BOARD.open(steps, '🎬 ' + topic.title, { mini: true });
+    }
+  }
+
+  root.AI = { explainTask, status, ask, viewChat, viewSettings, explainMistake, parseBoard, persona };
 })(typeof window !== 'undefined' ? window : globalThis);

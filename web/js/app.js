@@ -470,6 +470,9 @@
       const canHint = SESS.mode !== 'check' && SESS.mode !== 'boss' && SESS.mode !== 'exam';
       html += `<div class="controls ${canHint ? 'three' : ''}">${canHint ? '<button class="btn white" data-act="hint">💡 Tipp</button><button class="btn cyan" data-act="board">🎬 Tafel</button>' : '<span></span>'}${kind === 'mc' && !inGuided ? '<span></span>' : '<button class="btn green" data-act="check">Prüfen ✔</button>'}</div>`;
     }
+    if (!c.finished && SESS.mode !== 'check' && SESS.mode !== 'boss' && SESS.mode !== 'exam' && window.AI && window.AI.status().ready) {
+      html += `<button class="btn block askkiko" data-act="askAi">🦊 Kiko, wie geht das? <span class="small">(erklärt mit Sprache)</span></button>`;
+    }
     html += `<div id="fb">${c.fb || ''}</div>`;
     if (c.finished) html += `<button class="btn pink block" style="margin-top:12px" data-act="next">Weiter →</button>`;
     app.innerHTML = html;
@@ -481,6 +484,7 @@
       hint: () => showHint(),
       board: () => { c.hint = true; const sim = t.gen.call(t, c.lvl); window.BOARD.open(window.BOARD.fromTask(sim, t), `🎬 ${t.title}`); },
       why: () => window.AI.explainMistake(task, t, c.given),
+      askAi: () => { c.hint = true; window.AI.explainTask(task, t); },
       boardSame: () => window.BOARD.open(window.BOARD.fromTask(task, t), `🎬 ${t.title}`),
       mc: (k) => doCheck(+k),
       next: () => advance(),

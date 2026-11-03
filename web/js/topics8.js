@@ -259,7 +259,8 @@
       const prods = inner.map(([c, v]) => [fc * c, vmul(fv, v)]);
       const answer = ps(prods.map(([c, v]) => [c, forParse(v)]));
       const fShown = fc === -1 && !fv ? '(−1)' : fv ? term(fc, fv) : par(fc);
-      const steps = inner.map(([c, v], i) => `${fShown} · ${par(c)}${v} = ${term(prods[i][0], prods[i][1])}`);
+      const it = (c, v) => (c < 0 ? '(' + term(c, v) + ')' : term(c, v));
+      const steps = inner.map(([c, v], i) => `${fShown} · ${it(c, v)} = ${term(prods[i][0], prods[i][1])}`);
       steps.push('Ergebnis: <b>' + terms(prods) + '</b>');
       // typische Fehler
       const misc = [];
@@ -267,12 +268,12 @@
       if (fc === -1 && !fv) misc.push({ ans: ps([[-inner[0][0], 'x'], ...inner.slice(1).map(([c, v]) => [c, forParse(v)])]), msg: 'Der Umkehr-Zauber 🔄 gilt für <b>alle</b> Glieder in der Klammer – auch für das zweite!', gap: 'neg' });
       const showF = f === MINUS ? '−' : f;
       const guided = inner.map(([c, v], i) => ({
-        q: `Schritt ${i + 1}: ${fShown} · ${par(c)}${v} = ?`,
+        q: `Schritt ${i + 1}: ${fShown} · ${it(c, v)} = ?`,
         kind: prods[i][1] ? 'term' : 'num',
         answer: prods[i][1] ? ps([[prods[i][0], forParse(prods[i][1])]]) : prods[i][0],
       }));
       return tm(`Multipliziere aus: ${eq(showF + '(' + innerText + ')')}`, answer, 'expanded', {
-        hint: 'Jedes Glied in der Klammer bekommt Besuch: ' + inner.map(([c, v]) => fShown + ' · ' + par(c) + v).join(' und ') + '. Vorzeichen-Trick: gleiche → +, verschiedene → −.',
+        hint: 'Jedes Glied in der Klammer bekommt Besuch: ' + inner.map(([c, v]) => fShown + ' · ' + it(c, v)).join(' und ') + '. Vorzeichen-Trick: gleiche → +, verschiedene → −.',
         steps, misc, guided,
         fig: fv || inner.length > 2 ? '' : FIG.arrows(showF || '1', inner.map(([c, v], i) => ({ op: i ? (c < 0 ? '−' : '+') : '', t: (i ? term(Math.abs(c), v) : term(c, v)) }))),
       });
