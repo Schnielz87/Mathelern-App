@@ -20,6 +20,10 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import android.view.WindowManager
+import android.widget.FrameLayout
 import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
@@ -52,12 +56,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         web = WebView(this)
-        setContentView(web)
+        // WebView in einen Rahmen setzen: Abstaende am Rahmen werden zuverlaessig beachtet
+        // (Padding direkt an der WebView ignoriert sie bei festen Elementen wie den Knoepfen unten).
+        val frame = FrameLayout(this).apply { setBackgroundColor(0xFF2B1055.toInt()) }
+        frame.addView(web, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        setContentView(frame)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (Build.VERSION.SDK_INT >= 28) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
+        enterFullscreen()
 
-        // Platz fuer Statusleiste, Navigationsleiste und Tastatur lassen
-        ViewCompat.setOnApplyWindowInsetsListener(web) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+        // Nur Kamera-Ausschnitt, Tastatur und ggf. sichtbare Leisten freilassen
+        ViewCompat.setOnApplyWindowInsetsListener(frame) { v, insets ->
+            val i = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime())
+            v.setPadding(i.left, i.top, i.right, i.bottom)
             WindowInsetsCompat.CONSUMED
         }
 
@@ -135,6 +150,19 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         updater.onResume()
+        enterFullscreen()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enterFullscreen()
+    }
+
+    /** Vollbild: Status- und Navigationsleiste ausblenden; per Wischen vom Rand kurz einblendbar. */
+    private fun enterFullscreen() {
+        val c = WindowCompat.getInsetsController(window, window.decorView)
+        c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        c.hide(WindowInsetsCompat.Type.systemBars())
     }
 
     override fun onDestroy() {
