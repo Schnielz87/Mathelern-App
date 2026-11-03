@@ -41,8 +41,8 @@ Schritt-für-Schritt-Hilfe, Lösungswege, Spickzettel und ein **Boss-Kampf**.
 - `.github/workflows/build.yml` – Version `1.0.<Laufnummer>`, baut die APK, erstellt das Release und
   veröffentlicht die Web-App auf dem Zweig `gh-pages` (Settings → Pages → Branch `gh-pages`).
 - `tools/make-icons.js` – erzeugt App-Icons aus der Kiko-Grafik.
-- **Signatur:** Der App-Schlüssel liegt **nicht** im Repo, sondern als GitHub-Secrets `SIGNING_KEYSTORE_BASE64`
-  und `SIGNING_PASSWORD` (Settings → Secrets and variables → Actions). Immer denselben Schlüssel verwenden,
-  sonst passen Updates nicht zur installierten App.
+- **Signatur:** `signing/tia-release.jks` liegt bewusst im Repo, damit jede Version als Update zur installierten App
+  passt. Optional ersetzbar über die GitHub-Secrets `SIGNING_KEYSTORE_BASE64` und `SIGNING_PASSWORD`
+  (dann muss die App einmal neu installiert werden).
 
 Lokal testen: `cd web && python3 -m http.server` → http://localhost:8000 · Tests: `node tests/content.test.js`

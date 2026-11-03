@@ -35,3 +35,6 @@ google-services.json
 *.hprof
 
 node_modules/
+
+# App-Signaturschluessel bewusst im Repo (Updates muessen zur installierten App passen)
+!signing/tia-release.jks

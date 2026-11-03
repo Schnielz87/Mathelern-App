@@ -52,10 +52,7 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
         run: |
-          if [ -z "$KEYSTORE_B64" ]; then
-            echo "::error::Secret SIGNING_KEYSTORE_BASE64 fehlt (siehe README, Abschnitt Signatur)."
-            exit 1
-          fi
+          if [ -z "$KEYSTORE_B64" ]; then echo "Nutze signing/tia-release.jks aus dem Repo."; exit 0; fi
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "SIGNING_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 

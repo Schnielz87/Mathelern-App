@@ -24,10 +24,10 @@ android {
 
     signingConfigs {
         create("release") {
-            // Schluessel kommt aus GitHub-Secrets (SIGNING_KEYSTORE_BASE64 / SIGNING_PASSWORD),
-            // lokal aus signing/tia-release.jks (nicht im Repo). Immer derselbe Schluessel, sonst passen Updates nicht.
+            // Standard: signing/tia-release.jks im Repo (bewusst, damit jede Version als Update passt).
+            // Optional per GitHub-Secrets SIGNING_KEYSTORE_BASE64 / SIGNING_PASSWORD ersetzbar.
             val ks = System.getenv("SIGNING_KEYSTORE_FILE")?.takeIf { it.isNotBlank() } ?: rootProject.file("signing/tia-release.jks").path
-            val pw = System.getenv("SIGNING_PASSWORD")?.takeIf { it.isNotBlank() } ?: (project.findProperty("signingPassword") as String? ?: "")
+            val pw = System.getenv("SIGNING_PASSWORD")?.takeIf { it.isNotBlank() } ?: "tiamathequest"
             if (file(ks).exists()) {
                 storeFile = file(ks)
                 storePassword = pw
