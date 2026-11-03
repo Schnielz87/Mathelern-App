@@ -4,6 +4,7 @@
   'use strict';
   const NATIVE = root.TiaNative || null;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const MUTE_KEY = () => (root.EDITION ? root.EDITION.ls('Mute') : 'tmqMute');
 
   // ---------------- Sprache ----------------
   const SPEECH = {
@@ -121,7 +122,10 @@
   /** Ganze Erklärung eines Themas als Tafel-Film (aus den Erklär-Panels). */
   function fromLearn(topic) {
     const steps = [];
-    topic.learn.forEach((s, idx) => {
+    topic.learn.forEach((s0, idx) => {
+      let s = s0;
+      const G = root.GX || ((x) => x);
+      s = { ...s, t: G(s.t), k: G(s.k), ex: s.ex && G(s.ex), tia: s.tia && G(s.tia), k2: s.k2 && G(s.k2) };
       steps.push({ clear: true, say: s.t.replace(EMOJI, '') + '. ' + sayMath(s.k), lines: [{ t: `${idx + 1}. ${s.t}`, k: 'h' }] });
       if (s.ex && typeof DOMParser !== 'undefined') {
         const doc = new DOMParser().parseFromString('<div>' + s.ex + '</div>', 'text/html');
@@ -137,7 +141,8 @@
           else steps.push({ say: sayMath(t), lines: [{ t, k: 'n' }] });
         });
       }
-      if (s.tia) steps.push({ say: 'Tia fragt: ' + sayMath(s.tia), lines: [{ t: 'Tia: „' + textOf(s.tia) + '“', k: 'n', c: 'p' }] });
+      const who = root.WHO ? root.WHO() : 'Tia';
+      if (s.tia) steps.push({ say: who + ' fragt: ' + sayMath(s.tia), lines: [{ t: who + ': „' + textOf(s.tia) + '“', k: 'n', c: 'p' }] });
       if (s.k2) steps.push({ say: sayMath(s.k2), lines: [{ t: 'Kiko: ' + textOf(s.k2), k: 'n', c: 'v' }] });
     });
     steps.push({ clear: true, say: 'Das war\'s! Jetzt probier es selbst bei den Übungen. Ich drück dir die Daumen!', lines: [{ t: 'Jetzt bist du dran! 💪', k: 'h' }] });
@@ -182,7 +187,7 @@
       if (a === 'pause') { paused = !paused; b.textContent = paused ? '▶' : '⏸'; if (paused) SPEECH.stop(); }
       if (a === 'restart') { SPEECH.stop(); start(0); }
       if (a === 'next') { SPEECH.stop(); skip = true; }
-      if (a === 'mute') { SPEECH.muted = !SPEECH.muted; b.textContent = SPEECH.muted ? '🔇' : '🔊'; if (SPEECH.muted) SPEECH.stop(); try { localStorage.setItem('tmqMute', SPEECH.muted ? '1' : ''); } catch (er) { /* egal */ } }
+      if (a === 'mute') { SPEECH.muted = !SPEECH.muted; b.textContent = SPEECH.muted ? '🔇' : '🔊'; if (SPEECH.muted) SPEECH.stop(); try { localStorage.setItem(MUTE_KEY(), SPEECH.muted ? '1' : ''); } catch (er) { /* egal */ } }
     });
     // Bild-in-Bild-Fenster an der Kopfzeile verschieben
     const head = el.querySelector('.bhead');
@@ -210,7 +215,7 @@
     ensure();
     el.classList.toggle('mini', !!opts.mini);
     if (!opts.mini) el.style.left = el.style.top = el.style.right = el.style.bottom = '';
-    try { SPEECH.muted = localStorage.getItem('tmqMute') === '1'; } catch (e) { /* egal */ }
+    try { SPEECH.muted = localStorage.getItem(MUTE_KEY()) === '1'; } catch (e) { /* egal */ }
     el.querySelector('[data-b="mute"]').textContent = SPEECH.muted ? '🔇' : '🔊';
     el.querySelector('[data-b="pause"]').textContent = '⏸';
     el.querySelector('.btitle').textContent = title || 'Kikos Tafel';

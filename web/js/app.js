@@ -1,4 +1,4 @@
-/* Tias Mathe-Quest – Oberfläche, Lernlogik, Belohnungen, Updates. */
+/* Tias Mathe-Quest / Mathe-Manga-Quest – Oberfläche, Lernlogik, Belohnungen, Updates. */
 (function () {
   'use strict';
   const $ = (s, r = document) => r.querySelector(s);
@@ -14,9 +14,11 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ================= Speicher =================
-  const KEY = 'tiaMatheQuest.v1';
+  const E = window.EDITION;
+  const GX = window.GX;
+  const KEY = E.key;
   const DEF = () => ({
-    name: 'Tia', xp: 0, topics: {}, gaps: {}, stickers: {}, streak: { n: 0, last: '' }, days: {}, missions: {},
+    name: E.name, gender: E.gender, onboarded: !E.askName, xp: 0, topics: {}, gaps: {}, stickers: {}, streak: { n: 0, last: '' }, days: {}, missions: {},
     totalOk: 0, totalTasks: 0, history: [], checkup: false, settings: { sound: true, vib: true, guided: 'auto' }, created: Date.now(),
   });
   function load() {
@@ -35,10 +37,12 @@
   const yesterday = () => dayKey(new Date(Date.now() - 864e5));
 
   // ================= Ränge & Sticker =================
-  const RANKS = [[0, 'Mathe-Neuling', '🌱'], [100, 'Lehrling', '📘'], [250, 'Kämpferin', '⚔️'], [500, 'Heldin', '🦸‍♀️'], [900, 'Mathe-Ninja', '🥷'], [1400, 'Sensei-Schülerin', '🎓'], [2000, 'Meisterin', '🏅'], [3000, 'Legende', '🐉'], [4500, 'Mathe-Göttin', '👑']];
+  const RANKS = [[0, 'Mathe-Neuling', '🌱'], [100, 'Lehrling', '📘'], [250, '{g:Kämpferin|Kämpfer|Kampfgeist}', '⚔️'], [500, '{g:Heldin|Held|Heldenherz}', '{g:🦸‍♀️|🦸‍♂️|🦸}'], [900, 'Mathe-Ninja', '🥷'], [1400, '{g:Sensei-Schülerin|Sensei-Schüler|Sensei-Schützling}', '🎓'], [2000, '{g:Meisterin|Meister|Meister-Ass}', '🏅'], [3000, 'Legende', '🐉'], [4500, '{g:Mathe-Göttin|Mathe-Gott|Mathe-Champion}', '👑']];
+  const rankName = (i) => GX(RANKS[i][1]);
+  const rankEmoji = (i) => GX(RANKS[i][2]);
   const rankIdx = (xp) => RANKS.reduce((i, r, k) => (xp >= r[0] ? k : i), 0);
   const SPECIAL = [
-    { id: 's_check', e: '🧪', n: 'Forscherin', how: 'Einstufungstest gemacht' },
+    { id: 's_check', e: '🧪', n: '{g:Forscherin|Forscher|Forschungs-Ass}', how: 'Einstufungstest gemacht' },
     { id: 's_first', e: '🏆', n: 'Erster Sieg', how: 'Ersten Boss besiegt' },
     { id: 's_perfect', e: '💯', n: 'Perfekte Runde', how: 'Runde mit 8+ Aufgaben ohne Fehler' },
     { id: 's_mission', e: '🎯', n: 'Missions-Profi', how: 'Erste Tagesmission geschafft' },
@@ -48,6 +52,7 @@
     { id: 's_ok500', e: '🌠', n: 'Sternschnuppe', how: '500 Aufgaben richtig' },
     { id: 's_ninja', e: '🥷', n: 'Ninja-Rang', how: 'Rang „Mathe-Ninja“ erreicht' },
   ];
+  const stName = (st) => GX(st.n);
   const STICKERS = [...TOP.map((t) => ({ id: 't_' + t.id, e: t.sticker.e, n: t.sticker.n, how: `Boss „${t.boss.name}“ besiegen` })), ...SPECIAL];
   let newStickers = [];
   function award(id) {
@@ -75,7 +80,7 @@
     if (S.totalOk >= 500) award('s_ok500');
     const after = rankIdx(S.xp);
     if (after >= 4) award('s_ninja');
-    if (after > before) setTimeout(() => modal(`${window.ART.kiko('wow')}<h2>Rang-Aufstieg! ${RANKS[after][2]}</h2><p>Du bist jetzt <b>${RANKS[after][1]}</b>!<br>Kiko ist mega stolz auf dich! 🎉</p><button class="btn pink block" data-close>Weiter so!</button>`), 900);
+    if (after > before) setTimeout(() => modal(`${window.ART.kiko('wow')}<h2>Rang-Aufstieg! ${rankEmoji(after)}</h2><p>Du bist jetzt <b>${rankName(after)}</b>!<br>Kiko ist mega stolz auf dich! 🎉</p><button class="btn pink block" data-close>Weiter so!</button>`), 900);
     save();
   }
 
@@ -198,6 +203,7 @@
 
   // ================= Startseite =================
   function home() {
+    if (!S.onboarded && !S.parent) return onboarding();
     const r = rankIdx(S.xp), nextR = RANKS[r + 1];
     const prog = nextR ? (S.xp - RANKS[r][0]) / (nextR[0] - RANKS[r][0]) * 100 : 100;
     const todayXp = S.days[today()] || 0;
@@ -209,15 +215,15 @@
     const showIOS = !NATIVE && isIOS && !standalone && !sessionStorage.getItem('iosHint');
     app.innerHTML = `
       <div class="hero">
-        ${window.ART.tia('happy')}
-        <div class="grow"><h1>Hey ${esc(S.name)}! 👋</h1><span class="rank">${RANKS[r][2]} ${RANKS[r][1]}</span></div>
+        ${window.ART.me('happy')}
+        <div class="grow"><h1>Hey ${esc(S.name)}! 👋</h1><span class="rank">${rankEmoji(r)} ${rankName(r)}</span></div>
         <button class="back" data-act="go" data-arg="settings" aria-label="Einstellungen">⚙️</button>
       </div>
       ${UPD.pending ? `<div class="banner">✨ <span class="grow">Neues Update <b>${esc(UPD.pending.version)}</b> ist da!</span><button class="btn small pink" data-act="update">Holen</button></div>` : ''}
-      ${S.parent ? `<div class="banner">👀 <span class="grow">Fortschritt von <b>${esc((S.parent.snap && S.parent.snap.name) || 'Tia')}</b> ansehen</span><button class="btn small pink" data-act="go" data-arg="eltern">Öffnen</button></div>` : ''}
+      ${S.parent ? `<div class="banner">👀 <span class="grow">Fortschritt von <b>${esc((S.parent.snap && S.parent.snap.name) || 'deinem Kind')}</b> ansehen</span><button class="btn small pink" data-act="go" data-arg="eltern">Öffnen</button></div>` : ''}
       ${showIOS ? `<div class="banner ios">📲 <span class="grow small">Als App installieren: unten auf <b>Teilen</b> ⬆️ tippen, dann <b>„Zum Home-Bildschirm“</b>.</span><button class="btn small white" data-act="iosok">OK</button></div>` : ''}
       <div class="panel" style="padding:12px">
-        <div class="row small"><span class="grow">${RANKS[r][1]}</span><span>${nextR ? `${S.xp} / ${nextR[0]} XP` : S.xp + ' XP'}</span></div>
+        <div class="row small"><span class="grow">${rankName(r)}</span><span>${nextR ? `${S.xp} / ${nextR[0]} XP` : S.xp + ' XP'}</span></div>
         <div class="bar" style="margin-top:4px"><i style="width:${prog}%"></i></div>
         <div class="stats">
           <div class="stat"><div class="v">🔥 ${S.streak.last === today() || S.streak.last === yesterday() ? S.streak.n : 0}</div><div class="l">Tage-Serie</div></div>
@@ -248,6 +254,36 @@
     };
     if (UPD.pending && !UPD.shown) { UPD.shown = true; showUpdate(UPD.pending); }
     window.FAMILY && window.FAMILY.checkCheers();
+  }
+
+  // ================= Erster Start: Name & Figur =================
+  function onboarding() {
+    let g = S.gender || '';
+    app.innerHTML = `
+      <div class="center" style="margin-top:10px"><h1 class="title-white">${E.logo[0]} <span style="color:var(--yellow)">${E.logo[1]}</span></h1></div>
+      <div class="sensei">${window.ART.kiko('wow')}<div class="bubble">Hi! Ich bin <b>Kiko</b>, dein Fuchs-Sensei. 🦊 Zusammen machen wir dich zum Mathe-Profi! Wie heißt du?</div></div>
+      <div class="panel">
+        <input id="on" maxlength="20" placeholder="Dein Vorname" value="${esc(S.name || '')}" style="width:100%;font:900 24px Nunito,sans-serif;border:3px solid var(--ink);border-radius:12px;padding:10px;text-align:center">
+        <h3 style="margin-top:14px">Wähle deine Figur</h3>
+        <div class="row" style="justify-content:space-between">${[['f', 'tia', 'Mädchen'], ['m', 'boy', 'Junge'], ['n', 'hoodie', 'neutral']].map(([v, a, l]) => `<button class="tile pickfig" data-act="fig" data-arg="${v}" style="flex:1;min-height:0;padding:8px">${window.ART[a]('happy')}<span class="s">${l}</span></button>`).join('')}</div>
+        <button class="btn pink block" style="margin-top:14px" data-act="ok">Los geht's! 🚀</button>
+      </div>
+      <button class="btn white block" data-act="parent">👀 Ich bin Mama / Papa – nur Fortschritt ansehen</button>`;
+    const mark = () => app.querySelectorAll('.pickfig').forEach((b) => b.classList.toggle('on', b.dataset.arg === g));
+    mark();
+    ACT = {
+      fig: (v) => { g = v; mark(); },
+      ok: () => {
+        const n = $('#on').value.trim().slice(0, 20);
+        if (!n) { toast('Bitte gib deinen Namen ein 🙂'); $('#on').focus(); return; }
+        if (!g) { toast('Bitte wähle eine Figur'); return; }
+        S.name = n; S.gender = g; S.onboarded = true; save();
+        sound('win'); confetti(40);
+        toast(`Willkommen, ${esc(n)}! 🎉`);
+        home();
+      },
+      parent: () => go('eltern'),
+    };
   }
 
   // ================= Kapitel =================
@@ -299,7 +335,8 @@
     const t = byId[id]; if (!t) return go('');
     let i = +(idx || 0);
     const draw = () => {
-      const s = t.learn[i];
+      const raw = t.learn[i];
+      const s = { ...raw, t: GX(raw.t), k: GX(raw.k), ex: raw.ex && GX(raw.ex), tia: raw.tia && GX(raw.tia), k2: raw.k2 && GX(raw.k2) };
       const last = i === t.learn.length - 1;
       app.innerHTML = topbar(`${t.emoji} ${t.title}`) + `
         <button class="btn small cyan" data-act="board" style="margin:4px 0">🎬 Als Tafel-Film ansehen</button>
@@ -308,7 +345,7 @@
           <div class="ptitle">${i + 1}. ${s.t}</div>
           <div class="say">${window.ART.kiko(s.mood || 'happy')}<div class="bubble">${s.k}</div></div>
           ${s.ex ? `<div class="exbox">${s.ex}</div>` : ''}
-          ${s.tia ? `<div class="say tia-say">${window.ART.tia()}<div class="bubble right">${s.tia}</div></div>` : ''}
+          ${s.tia ? `<div class="say tia-say">${window.ART.me()}<div class="bubble right">${s.tia}</div></div>` : ''}
           ${s.k2 ? `<div class="say">${window.ART.kiko('cheer')}<div class="bubble">${s.k2}</div></div>` : ''}
           ${s.quiz ? `<div class="quiz"><b>🎮 Probier mal:</b> ${s.quiz.q}<div class="opts">${shuffle(s.quiz.c.map((c, k) => k)).map((k) => `<button class="choice" data-act="quiz" data-arg="${k}">${s.quiz.c[k]}</button>`).join('')}</div><div id="qwhy"></div></div>` : ''}
         </div>
@@ -732,7 +769,7 @@
         <h1>${title}</h1>${extraHtml}
         ${s.mode !== 'check' || true ? `<div class="stats"><div class="stat"><div class="v">${okN}/${total}</div><div class="l">richtig</div></div><div class="stat"><div class="v">+${s.xp}</div><div class="l">XP</div></div><div class="stat"><div class="v">x${s.maxCombo}</div><div class="l">beste Combo</div></div></div>` : ''}
       </div>
-      ${stickers.length ? `<div class="panel center"><h3>🎁 Neue Sticker!</h3><div class="album">${stickers.map((st) => `<div class="card new"><div class="shine"></div><div class="e">${st.e}</div><div class="n">${st.n}</div></div>`).join('')}</div></div>` : ''}
+      ${stickers.length ? `<div class="panel center"><h3>🎁 Neue Sticker!</h3><div class="album">${stickers.map((st) => `<div class="card new"><div class="shine"></div><div class="e">${st.e}</div><div class="n">${stName(st)}</div></div>`).join('')}</div></div>` : ''}
       <div class="sensei">${window.ART.kiko('happy')}<div class="bubble">${advice}</div></div>
       <div class="panel plist"><h3>📈 Dein Stand</h3>${changes}</div>
       <div class="row"><button class="btn white grow" data-act="again">🔁 Nochmal</button><button class="btn pink grow" data-act="home">Fertig ✔</button></div>`;
@@ -752,7 +789,7 @@
     app.innerHTML = topbar('🃏 Sammelalbum') + `
       <div class="sensei">${window.ART.kiko('wow')}<div class="bubble">Du hast <b>${have} von ${STICKERS.length}</b> Stickern! Besiege Bosse und sammle Erfolge, um alle zu bekommen. ✨</div></div>
       <div class="panel"><div class="album">${STICKERS.map((s) => S.stickers[s.id]
-        ? `<div class="card"><div class="shine"></div><div class="e">${s.e}</div><div class="n">${s.n}</div></div>`
+        ? `<div class="card"><div class="shine"></div><div class="e">${s.e}</div><div class="n">${stName(s)}</div></div>`
         : `<div class="card locked"><div class="e">${s.e}</div><div class="n">???</div><div class="small muted" style="font-size:10px">${s.how}</div></div>`).join('')}</div></div>`;
     ACT = { back };
   }
@@ -793,6 +830,7 @@
     app.innerHTML = topbar('⚙️ Einstellungen') + `
       <div class="panel">
         <div class="setting"><span>Name</span><input id="nm" value="${esc(S.name)}" maxlength="20" style="font:inherit;border:3px solid var(--ink);border-radius:10px;padding:6px;width:150px"></div>
+        <div class="setting"><span>Figur</span><select id="gs"><option value="f">👧 Mädchen</option><option value="m">👦 Junge</option><option value="n">🐱 neutral</option></select></div>
         <div class="setting"><span>🔊 Töne</span>${tg('sound')}</div>
         <div class="setting"><span>📳 Vibration</span>${tg('vib')}</div>
         <div class="setting"><span>🐾 Schritt-für-Schritt-Hilfe</span><select id="gd"><option value="auto">automatisch</option><option value="always">immer</option><option value="off">aus</option></select></div>
@@ -819,10 +857,12 @@
         <button class="btn white block" data-act="check">Test starten</button>
       </div>
       <div class="panel"><button class="btn white block" data-act="reset">🗑️ Fortschritt löschen</button></div>
-      <p class="center small" style="color:#fff;opacity:.7">Tias Mathe-Quest · mit 🦊 und ❤️ gemacht</p>`;
+      <p class="center small" style="color:#fff;opacity:.7">${E.app} · mit 🦊 und ❤️ gemacht</p>`;
     $('#gd').value = S.settings.guided;
     $('#gd').onchange = (e) => { S.settings.guided = e.target.value; save(); };
-    $('#nm').onchange = (e) => { S.name = e.target.value.trim() || 'Tia'; save(); };
+    $('#nm').onchange = (e) => { S.name = e.target.value.trim().slice(0, 20) || S.name; save(); };
+    $('#gs').value = S.gender || 'n';
+    $('#gs').onchange = (e) => { S.gender = e.target.value; save(); toast('Figur geändert ✔'); };
     ACT = {
       back,
       tg: (k, el) => { S.settings[k] = !S.settings[k]; el.classList.toggle('on', S.settings[k]); save(); },
@@ -879,7 +919,7 @@
     $('#doUpd').onclick = () => { if (NATIVE) NATIVE.installUpdate(); else applyWebUpdate(); };
   }
   function checkUpdate(manual) {
-    try { localStorage.setItem('tmqLastCheck', String(Date.now())); } catch (e) { /* egal */ }
+    try { localStorage.setItem(E.ls('LastCheck'), String(Date.now())); } catch (e) { /* egal */ }
     if (NATIVE) { NATIVE.checkUpdate(!!manual); return; }
     fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then((r) => r.json()).then((j) => {
       if (j.version && !String(j.version).startsWith('__') && newer(j.version, VERSION)) onUpdate({ state: 'available', version: j.version });
@@ -911,7 +951,7 @@
     if (!NATIVE && 'serviceWorker' in navigator && location.protocol === 'https:') {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
-    const due = () => Date.now() - (+localStorage.getItem('tmqLastCheck') || 0) > 864e5;
+    const due = () => Date.now() - (+localStorage.getItem(E.ls('LastCheck')) || 0) > 864e5;
     setTimeout(() => checkUpdate(false), 3500);
     setInterval(() => { if (due()) checkUpdate(false); }, 36e5);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && due()) checkUpdate(false); });
@@ -938,7 +978,7 @@
   // ================= Start =================
   $('#splashKiko').outerHTML = window.ART.kiko('cheer');
   window.APP = {
-    get S() { return S; }, save, go, back, modal, toast, topbar, esc, byId, TOP, tp, RANKS, rankIdx, dayKey, BANDS, sound, startSession, NATIVE, VERSION,
+    get S() { return S; }, save, go, back, modal, toast, topbar, esc, byId, TOP, tp, RANKS, rankIdx, rankName, dayKey, BANDS, sound, startSession, NATIVE, VERSION,
     app, setAct: (o) => { ACT = o; },
   };
   const pairLink = location.hash.match(/^#\/pair\/(.+)$/);

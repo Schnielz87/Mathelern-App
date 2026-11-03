@@ -62,3 +62,17 @@ Kiko beantwortet Mathe-Fragen, erklärt Hausaufgaben **an der Tafel** und sagt n
 Ist die KI eingerichtet, gibt es in jeder Aufgabe den Knopf **„🦊 Kiko, wie geht das?“**: Kiko erklärt den Lösungsweg
 genau dieser Aufgabe **per Sprache** in einem kleinen **Bild-in-Bild-Fenster** (verschiebbar, mit ⤢ auf Vollbild).
 Das Ergebnis verrät Kiko nicht – den letzten Schritt rechnet Tia selbst.
+
+---
+
+# 🦊 Mathe-Manga-Quest (namensneutrale Variante)
+
+Gleiche App mit allen Funktionen – nur ohne festen Namen. Beim ersten Start gibt man **Vornamen** ein und wählt
+eine **Figur** (Mädchen, Junge oder neutral). Der Name erscheint dann überall: Startbild („Ich drück dir die Daumen, …!“),
+Begrüßung, Aufgaben, Tafel, Kiko und Eltern-Ansicht. Ränge und Sticker passen sich der Figur an.
+Name und Figur lassen sich unter ⚙️ Einstellungen ändern. Sie kann neben „Tias Mathe-Quest“ installiert werden.
+
+- **Android-APK:** https://github.com/Schnielz87/Mathelern-App/releases/latest/download/Mathe-Manga-Quest.apk
+  (Installation wie oben beschrieben)
+- **iPhone/Web-App:** https://schnielz87.github.io/Mathelern-App/quest/
+  (in Safari öffnen → Teilen → „Zum Home-Bildschirm“)

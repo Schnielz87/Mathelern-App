@@ -15,7 +15,7 @@
   };
 
   // ---------------- Speicher (Web) ----------------
-  const LS = 'tmqAi';
+  const LS = root.EDITION ? root.EDITION.ls('Ai') : 'tmqAi';
   const webCfg = () => { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } };
   const setWebCfg = (c) => { try { localStorage.setItem(LS, JSON.stringify(c)); } catch (e) { /* egal */ } };
 
@@ -117,7 +117,7 @@
   function persona() {
     const { S, TOP, tp } = A();
     const weak = TOP.filter((t) => tp(t.id).seen >= 3 && tp(t.id).m < 50).map((t) => t.title).slice(0, 5);
-    return `Du bist Kiko, ein fröhlicher Fuchs-Sensei im Manga-Stil in der Mathe-Lern-App „Tias Mathe-Quest“. Du sprichst mit ${S.name} (8. Klasse, Hauptschule, tut sich in Mathe schwer, liebt Mangas).
+    return `Du bist Kiko, ein fröhlicher Fuchs-Sensei im Manga-Stil in der Mathe-Lern-App „${root.EDITION.app}“. Du sprichst mit ${S.name} (${root.EDITION.about}${S.gender === 'f' ? ', Mädchen' : S.gender === 'm' ? ', Junge' : ''}).
 Regeln:
 - Antworte auf Deutsch, in kurzen, einfachen Sätzen, freundlich und ermutigend. Nutze Alltags- oder Manga-Beispiele.
 - Erkläre Schritt für Schritt. Gib bei Hausaufgaben nicht nur das Ergebnis, sondern den Weg – und stelle am Ende eine kleine ähnliche Übungsfrage.
@@ -156,7 +156,7 @@ Verwende 4 bis 10 Schritte. Der erste Schritt schreibt die Aufgabe auf, der letz
       const box = $('#chatbox');
       if (!box) return;
       box.innerHTML = (chat.length ? chat : [{ u: false, t: 'Hey! 🦊 Was möchtest du wissen? Schreib mir eine Frage oder deine Hausaufgabe.' }]).map((m, i) => m.u
-        ? `<div class="say tia-say">${root.ART.tia()}<div class="bubble right">${md(m.t)}</div></div>`
+        ? `<div class="say tia-say">${root.ART.me()}<div class="bubble right">${md(m.t)}</div></div>`
         : `<div class="say">${root.ART.kiko(m.wait ? 'think' : 'happy')}<div class="bubble">${m.wait ? '<i>Kiko denkt nach …</i>' : md(m.t)}${m.board ? `<br><button class="btn small cyan" data-act="replay" data-arg="${i}">🎬 Nochmal an der Tafel</button>` : ''}</div></div>`).join('');
       box.lastElementChild && box.lastElementChild.scrollIntoView({ block: 'end' });
     };
@@ -282,7 +282,7 @@ Verwende 4 bis 10 Schritte. Der erste Schritt schreibt die Aufgabe auf, der letz
     const prompt = `Erkläre mir Schritt für Schritt, WIE man diese Aufgabe löst (Thema: ${topic.title}):\n${q}${task.unit ? ' (Einheit: ' + task.unit + ')' : ''}
 Zur Kontrolle für dich (NICHT verraten!): Lösung ${CHECK.answerText(task)}. Musterweg: ${(task.steps || []).map(BOARD.textOf).join(' | ')}
 Wichtig: Zeige den Weg so, dass ich ihn verstehe. Rechne NICHT bis zum Endergebnis – der letzte Schritt sagt mir, was ich jetzt selbst ausrechnen soll.`;
-    const rules = BOARD_RULES.replace('der letzte das Ergebnis.', 'der letzte Schritt fordert Tia auf, das Ergebnis selbst auszurechnen (ohne es zu nennen).');
+    const rules = BOARD_RULES.replace('der letzte das Ergebnis.', `der letzte Schritt fordert ${root.WHO()} auf, das Ergebnis selbst auszurechnen (ohne es zu nennen).`);
     try {
       const ans = await ask(persona() + rules, [{ u: true, t: prompt }]);
       if (!BOARD.isOpen()) return;

@@ -207,7 +207,7 @@
   // ======================================================================
   topic({
     id: 'wachstum', band: 10, title: 'Wachstum & Zinseszins', sub: 'Exponentiell', emoji: '🌿',
-    boss: { name: 'Wachstums-Wurm', emoji: '🐛' }, sticker: { e: '👑', n: 'Mathe-Prinzessin' }, pre: ['prozent', 'potenzen'],
+    boss: { name: 'Wachstums-Wurm', emoji: '🐛' }, sticker: { e: '👑', n: '{g:Mathe-Prinzessin|Mathe-Prinz|Mathe-Krone}' }, pre: ['prozent', 'potenzen'],
     learn: [
       { t: 'Zinsen auf Zinsen', mood: 'happy',
         k: 'Beim <b>Zinseszins</b> bekommst du im nächsten Jahr auch Zinsen auf die alten Zinsen. Das Geld wächst wie ein Schneeball ⛄!',

@@ -1,9 +1,9 @@
-/* Familien-Kopplung: Tias App schickt ihren Lernstand Ende-zu-Ende-verschlüsselt an die Eltern-App.
+/* Familien-Kopplung: Die App des Kindes schickt den Lernstand Ende-zu-Ende-verschlüsselt an die Eltern-App.
    Kopplung per QR-Code (enthält Kanal + Schlüssel). Der Weiterleitungsdienst sieht nur Chiffretext. */
 (function (root) {
   'use strict';
   const RELAY = 'https://ntfy.sh/';
-  const PWA_URL = 'https://schnielz87.github.io/Mathelern-App/';
+  const PWA_URL = (root.EDITION && root.EDITION.pwa) || 'https://schnielz87.github.io/Mathelern-App/';
   const PUB_GAP = 3 * 60 * 1000;
   const A = () => root.APP;
   const $ = (s, r = document) => r.querySelector(s);
@@ -48,9 +48,9 @@
     return out;
   }
 
-  // ---------------- Lernstand (Tia) ----------------
+  // ---------------- Lernstand (Kind) ----------------
   function snapshot() {
-    const { S, TOP, tp, rankIdx, RANKS, dayKey } = A();
+    const { S, TOP, tp, rankIdx, rankName, dayKey } = A();
     const days = {};
     for (let k = 0; k < 14; k++) { const d = dayKey(new Date(Date.now() - k * 864e5)); if (S.days[d]) days[d] = S.days[d]; }
     const weekAgo = Date.now() - 7 * 864e5;
@@ -62,7 +62,7 @@
     const gaps = {};
     Object.entries(S.gaps).forEach(([k, v]) => { if (v >= 1) gaps[k] = Math.round(v); });
     return {
-      type: 'snap', v: 1, at: Date.now(), name: S.name, xp: S.xp, rank: RANKS[rankIdx(S.xp)][1], streak: S.streak.n, sLast: S.streak.last,
+      type: 'snap', v: 1, at: Date.now(), name: S.name, xp: S.xp, rank: rankName(rankIdx(S.xp)), gender: S.gender || '', streak: S.streak.n, sLast: S.streak.last,
       days, ok: S.totalOk, tasks: S.totalTasks, acc7: recent.length ? Math.round(recent.filter((h) => h[2] > 0).length / recent.length * 100) : null,
       n7: recent.length, topics, gaps, errs, stickers: Object.keys(S.stickers).length, missions: Object.keys(S.missions).filter((d) => d >= dayKey(new Date(weekAgo))).length,
       checkup: S.checkup,
@@ -78,7 +78,7 @@
     catch (e) { p.err = 'Senden gerade nicht möglich (kein Internet?)'; save(); }
   }
 
-  /** Tia: neue Mut-Nachrichten der Eltern holen. */
+  /** Kind: neue Mut-Nachrichten der Eltern holen. */
   async function checkCheers() {
     const { S, save, modal, esc } = A();
     const p = S.pair;
@@ -97,11 +97,11 @@
 
   // ---------------- Tipps für Eltern ----------------
   const TIPS = {
-    neg: 'Zeig Tia das Thermometer oder den Kontostand: „Du hast 5 €, gibst 8 € aus – wie viel fehlt?“ So werden Minuszahlen greifbar.',
+    neg: 'Zeig {N} das Thermometer oder den Kontostand: „Du hast 5 €, gibst 8 € aus – wie viel fehlt?“ So werden Minuszahlen greifbar.',
     brueche: 'Pizza oder Schokolade teilen hilft: „Wie viel ist ¾ von 12 Stückchen?“ – erst durch 4, dann mal 3.',
-    terme: 'Lass Tia Alltagssätze übersetzen: „3 Mangas zu je x € und 2 € Versand“ → 3x + 2. Wie ein Geheimcode.',
+    terme: 'Lass {N} Alltagssätze übersetzen: „3 Mangas zu je x € und 2 € Versand“ → 3x + 2. Wie ein Geheimcode.',
     zusammen: 'Äpfel & Bonbons: Nur Gleiches darf zusammen. Lass sie die x-Glieder farbig unterstreichen.',
-    ausmult: 'Frag Tia: „Wer schüttelt wem die Hand?“ Bei 3(x + 4) muss die 3 BEIDEN die Hand geben: 3x + 12. Der häufigste Fehler ist, die zweite Zahl zu vergessen. Lass sie Pfeile malen!',
+    ausmult: 'Frag {N}: „Wer schüttelt wem die Hand?“ Bei 3(x + 4) muss die 3 BEIDEN die Hand geben: 3x + 12. Der häufigste Fehler ist, die zweite Zahl zu vergessen. Lass sie Pfeile malen!',
     ausklammern: 'Ausklammern ist rückwärts ausmultiplizieren. Zur Probe immer wieder ausmultiplizieren lassen – dann merkt sie Fehler selbst.',
     gleich: 'Die Waage-Idee: „Was du links machst, musst du auch rechts machen.“ Eine Küchenwaage macht es anschaulich.',
     prozent: 'Beim Einkaufen üben: „20 % Rabatt auf 40 € – wie viel sparst du?“ Trick: erst 10 % (Komma verschieben), dann verdoppeln.',
@@ -109,7 +109,7 @@
     dreisatz: 'Kochen nach Rezept ist Dreisatz pur: „Für 4 Personen 200 g – wie viel für 6?“ Erst auf 1 rechnen.',
     flaechen: 'Fliesen oder ein Zimmer ausmessen lassen. Dreieck = halbes Rechteck – mit Papier falten zeigen.',
     kreis: 'Mit einem Teller und einer Schnur ausprobieren: Der Umfang ist gut 3-mal so lang wie der Durchmesser (π).',
-    potenzen: 'Häufiger Fehler: 2⁵ ist NICHT 2·5. Lass Tia es ausschreiben: 2·2·2·2·2.',
+    potenzen: 'Häufiger Fehler: 2⁵ ist NICHT 2·5. Lass {N} es ausschreiben: 2·2·2·2·2.',
     wurzel: 'Die Quadratzahlen bis 15² wie ein Lied auswendig lernen – dann sind Wurzeln ein Kinderspiel.',
     pythagoras: 'Tipp: Erst die längste Seite (gegenüber vom rechten Winkel) markieren. Beispiel: Leiter an der Wand.',
     linfkt: 'Handytarif-Beispiel: Grundgebühr = b, Preis pro GB = m. So werden Funktionen alltagsnah.',
@@ -124,24 +124,25 @@
     koerper2: 'Eine Eistüte (Kegel) passt dreimal in einen gleich großen Becher – daher das ⅓ in der Formel.',
     massstab: 'Mit einer echten Wanderkarte Strecken messen und umrechnen – macht Lust auf den nächsten Ausflug.',
     trigo: 'Merksatz zusammen sprechen: „Gute Hunde (sin = G/H) · Auf Höfen (cos = A/H) · Gehen Aus (tan = G/A)“.',
-    wachstum: 'Zinseszins wie ein Schneeball: Lass Tia ausrechnen, wie ihr Erspartes in 5 Jahren wächst.',
+    wachstum: 'Zinseszins wie ein Schneeball: Lass {N} ausrechnen, wie das Ersparte in 5 Jahren wächst.',
   };
 
   function tipsFor(sn) {
     const { byId } = A();
+    const nm = (t) => String(t || '').replace(/\{N\}/g, sn.name || 'dein Kind');
     const out = [];
     const lastDay = sn.sLast ? Math.round((Date.now() - new Date(sn.sLast + 'T12:00').getTime()) / 864e5) : null;
     if (lastDay !== null && lastDay >= 2) out.push(['⏰', `${sn.name} hat seit ${lastDay} Tagen nicht geübt. Erinnere freundlich – 10 Minuten am Tag reichen. Am besten zusammen die <b>Tagesmission</b> starten.`]);
     if (sn.streak >= 3 && lastDay !== null && lastDay <= 1) out.push(['🔥', `${sn.n7 ? '' : ''}${sn.name} hat eine Serie von <b>${sn.streak} Tagen</b>! Ein ehrliches Lob wirkt jetzt Wunder.`]);
     if (sn.acc7 !== null && sn.acc7 < 50 && sn.n7 >= 10) out.push(['🤗', `Gerade ist vieles schwer (Trefferquote ${sn.acc7} %). Bitte ermutigen statt Druck machen – die App schaltet automatisch die Schritt-für-Schritt-Hilfe ein.`]);
-    if (sn.acc7 !== null && sn.acc7 >= 80 && sn.n7 >= 10) out.push(['🌟', `Super Trefferquote von ${sn.acc7} % diese Woche! Frag ${sn.name}, ob sie dir eine Aufgabe erklärt – wer erklärt, lernt doppelt.`]);
+    if (sn.acc7 !== null && sn.acc7 >= 80 && sn.n7 >= 10) out.push(['🌟', `Super Trefferquote von ${sn.acc7} % diese Woche! Lass dir von ${sn.name} eine Aufgabe erklären – wer erklärt, lernt doppelt.`]);
     const gaps = Object.entries(sn.gaps || {}).filter(([id]) => byId[id]).sort((a, b) => b[1] - a[1]);
     if (gaps.length) {
       const [g] = gaps[0];
-      out.push(['🧩', `Die App hat eine <b>Lücke bei den Grundlagen</b> erkannt: <b>${byId[g].title}</b>. Viele Fehler in anderen Themen kommen daher. ${TIPS[g] || ''}`]);
+      out.push(['🧩', `Die App hat eine <b>Lücke bei den Grundlagen</b> erkannt: <b>${byId[g].title}</b>. Viele Fehler in anderen Themen kommen daher. ${nm(TIPS[g])}`]);
     }
     const weak = Object.entries(sn.topics || {}).filter(([id, a]) => byId[id] && a[1] >= 5 && a[0] < 50).sort((a, b) => a[1][0] - b[1][0]);
-    weak.slice(0, 2).forEach(([id, a]) => { if (!gaps.length || gaps[0][0] !== id) out.push([byId[id].emoji, `<b>${byId[id].title}</b> (${a[0]} %): ${TIPS[id] || ''}`]); });
+    weak.slice(0, 2).forEach(([id, a]) => { if (!gaps.length || gaps[0][0] !== id) out.push([byId[id].emoji, `<b>${byId[id].title}</b> (${a[0]} %): ${nm(TIPS[id])}`]); });
     if (!sn.checkup) out.push(['🧪', `Der <b>Einstufungstest</b> wurde noch nicht gemacht. Er dauert 5 Minuten und hilft der App, die richtigen Aufgaben zu wählen.`]);
     if (sn.stickers >= 3) out.push(['🃏', `${sn.name} hat schon ${sn.stickers} Sticker gesammelt – frag nach den Lieblings-Stickern 😉`]);
     if (!out.length) out.push(['👍', `Alles läuft gut! Weiter so – regelmäßiges kurzes Üben ist am wirksamsten.`]);
@@ -159,8 +160,8 @@
     const { S, topbar, setAct, back, go, app } = A();
     app.innerHTML = topbar('👨‍👩‍👧 Familie') + `
       <div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Hier koppelst du die App mit Mama oder Papa. Dann sehen sie deinen Fortschritt und können dir Mut-Nachrichten schicken. 💌</div></div>
-      <button class="tcard" data-act="kid"><span class="e">🦊</span><span class="grow"><span class="t">Ich bin ${A().esc(S.name)}</span><br><span class="s">${S.pair ? '✔ gekoppelt – QR-Code zeigen' : 'QR-Code für Mama/Papa anzeigen'}</span></span></button>
-      <button class="tcard" data-act="parent"><span class="e">👀</span><span class="grow"><span class="t">Ich bin Mama / Papa</span><br><span class="s">${S.parent ? '✔ gekoppelt – Fortschritt ansehen' : 'QR-Code bei Tia scannen'}</span></span></button>`;
+      <button class="tcard" data-act="kid"><span class="e">🦊</span><span class="grow"><span class="t">Ich bin ${A().esc(S.name || 'das Kind')}</span><br><span class="s">${S.pair ? '✔ gekoppelt – QR-Code zeigen' : 'QR-Code für Mama/Papa anzeigen'}</span></span></button>
+      <button class="tcard" data-act="parent"><span class="e">👀</span><span class="grow"><span class="t">Ich bin Mama / Papa</span><br><span class="s">${S.parent ? '✔ gekoppelt – Fortschritt ansehen' : 'QR-Code beim Kind scannen'}</span></span></button>`;
     setAct({ back, kid: () => go('koppeln'), parent: () => go('eltern') });
   }
 
@@ -180,7 +181,7 @@
       <div class="row"><button class="btn white grow" data-act="send">📤 Jetzt senden</button><button class="btn white grow" data-act="renew">♻️ Neu koppeln</button></div>`;
     setAct({
       back,
-      share: async () => { try { await navigator.share({ title: 'Tias Mathe-Quest koppeln', text: 'Damit siehst du Tias Lernfortschritt:', url: link }); } catch (e) { copy(link); } },
+      share: async () => { try { await navigator.share({ title: `${root.EDITION.app} koppeln`, text: `Damit siehst du den Lernfortschritt von ${S.name}:`, url: link }); } catch (e) { copy(link); } },
       copy: () => copy(link),
       send: async () => { await publish(true); toast(S.pair.err ? S.pair.err : 'Lernstand gesendet ✔'); viewPair(); },
       renew: () => {
@@ -227,7 +228,7 @@
     const { S, save, topbar, setAct, back, app, esc, byId, TOP, BANDS, modal, toast } = A();
     if (!S.parent) {
       app.innerHTML = topbar('👀 Eltern-Ansicht') + `
-        <div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Hallo! Scanne den QR-Code, den Tia unter <b>Familie → „Ich bin Tia“</b> zeigt. Danach siehst du hier ihren Fortschritt und bekommst Tipps. 🦊</div></div>
+        <div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Hallo! Scanne den QR-Code, den dein Kind in seiner App unter <b>Familie → „Ich bin …“</b> zeigt. Danach siehst du hier ihren Fortschritt und bekommst Tipps. 🦊</div></div>
         <button class="btn pink block" data-act="scan">📷 QR-Code scannen</button>
         <div class="panel"><p class="small">Oder den Kopplungs-Link einfügen:</p><textarea id="pl" placeholder="https://…#/pair/…"></textarea><button class="btn white block" style="margin-top:8px" data-act="paste">Koppeln</button></div>`;
       setAct({ back, scan: () => scan((t) => acceptPair(t)), paste: () => acceptPair($('#pl').value) });
@@ -235,7 +236,7 @@
     }
     const p = S.parent, sn = p.snap;
     if (!sn) {
-      app.innerHTML = topbar('👀 Eltern-Ansicht') + `<div class="sensei">${root.ART.kiko('think')}<div class="bubble">Gekoppelt ✔ – aber es ist noch kein Lernstand angekommen. Tia muss die App einmal öffnen (mit Internet). ${p.err ? '<br><b>' + esc(p.err) + '</b>' : ''}</div></div>
+      app.innerHTML = topbar('👀 Eltern-Ansicht') + `<div class="sensei">${root.ART.kiko('think')}<div class="bubble">Gekoppelt ✔ – aber es ist noch kein Lernstand angekommen. Die App des Kindes muss einmal geöffnet werden (mit Internet). ${p.err ? '<br><b>' + esc(p.err) + '</b>' : ''}</div></div>
         <button class="btn cyan block" data-act="ref">🔄 Aktualisieren</button>${standaloneHint()}<button class="btn white block" style="margin-top:12px" data-act="unpair">Entkoppeln</button>`;
       setAct({ back, ref: () => refreshParent(true), unpair });
       if (!p.lastFetch || Date.now() - p.lastFetch > 15000) refreshParent(true);
@@ -269,11 +270,11 @@
     if (!p.lastFetch || Date.now() - p.lastFetch > 60000) refreshParent(true);
 
     async function sendCheer(text) {
-      try { await post(p, { type: 'cheer', text, from: 'Mama', at: Date.now() }); toast('💌 Gesendet! Tia sieht sie beim nächsten Öffnen.'); }
+      try { await post(p, { type: 'cheer', text, from: 'Mama', at: Date.now() }); toast(`💌 Gesendet! ${sn.name} sieht sie beim nächsten Öffnen.`); }
       catch (e) { toast('Senden nicht möglich – Internet prüfen.'); }
     }
     function unpair() {
-      const m = modal(`<h2>Entkoppeln?</h2><p>Du siehst dann Tias Fortschritt nicht mehr.</p><div class="row"><button class="btn white grow" data-close>Abbrechen</button><button class="btn pink grow" id="up">Entkoppeln</button></div>`);
+      const m = modal(`<h2>Entkoppeln?</h2><p>Du siehst dann den Fortschritt nicht mehr.</p><div class="row"><button class="btn white grow" data-close>Abbrechen</button><button class="btn pink grow" id="up">Entkoppeln</button></div>`);
       $('#up', m.el).onclick = () => { S.parent = null; save(); m.close(); viewParent(); };
     }
   }
@@ -291,7 +292,7 @@
   async function scan(onText) {
     const { modal, toast } = A();
     let stream = null, stop = false;
-    const m = modal(`<h2>📷 QR-Code scannen</h2><video id="qv" playsinline muted style="width:100%;border:3px solid var(--ink);border-radius:12px;background:#000"></video><p class="small">Halte die Kamera auf den Code in Tias App.</p><button class="btn white block" data-close>Abbrechen</button>`, () => { stop = true; if (stream) stream.getTracks().forEach((t) => t.stop()); });
+    const m = modal(`<h2>📷 QR-Code scannen</h2><video id="qv" playsinline muted style="width:100%;border:3px solid var(--ink);border-radius:12px;background:#000"></video><p class="small">Halte die Kamera auf den Code in der App deines Kindes.</p><button class="btn white block" data-close>Abbrechen</button>`, () => { stop = true; if (stream) stream.getTracks().forEach((t) => t.stop()); });
     try {
       await loadJsQR();
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });

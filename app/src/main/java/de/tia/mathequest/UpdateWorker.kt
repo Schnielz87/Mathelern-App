@@ -55,7 +55,7 @@ class UpdateWorker(context: Context, params: WorkerParameters) : Worker(context,
             )
             val n = NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setContentTitle("Neues Update für Tias Mathe-Quest ✨")
+                .setContentTitle("Neues Update für ${BuildConfig.APP_NAME} ✨")
                 .setContentText("Version $version ist da – tippe hier zum Aktualisieren.")
                 .setContentIntent(pi)
                 .setAutoCancel(true)

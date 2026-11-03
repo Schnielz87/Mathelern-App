@@ -89,7 +89,42 @@
     </svg>`;
   }
 
-  const api = { kiko, tia };
+  function eyesKid(mood, iris) {
+    return mood === 'happy'
+      ? `<path d="M 60 112 Q 72 100 84 112" fill="none" stroke="${INK}" stroke-width="4.5" stroke-linecap="round"/><path d="M 116 112 Q 128 100 140 112" fill="none" stroke="${INK}" stroke-width="4.5" stroke-linecap="round"/>`
+      : `<ellipse cx="72" cy="112" rx="11" ry="15" fill="${iris}" stroke="${INK}" stroke-width="3"/><circle cx="68" cy="105" r="4" fill="#fff"/><ellipse cx="128" cy="112" rx="11" ry="15" fill="${iris}" stroke="${INK}" stroke-width="3"/><circle cx="124" cy="105" r="4" fill="#fff"/>`;
+  }
+  const faceKid = `<ellipse cx="56" cy="134" rx="10" ry="5" fill="#ff8fb1" opacity="0.5"/><ellipse cx="144" cy="134" rx="10" ry="5" fill="#ff8fb1" opacity="0.5"/>
+      <path d="M 90 140 Q 100 150 110 140" fill="none" stroke="${INK}" stroke-width="3.5" stroke-linecap="round"/>`;
+
+  /** Junge mit Manga-Stachelfrisur */
+  function boy(mood = 'normal', cls = '') {
+    return `<svg class="tia ${cls}" viewBox="0 0 200 200" aria-hidden="true">
+      <ellipse cx="100" cy="118" rx="58" ry="58" fill="#ffe0cc" stroke="${INK}" stroke-width="4"/>
+      <path d="M 40 112 L 30 70 L 56 78 L 54 40 L 82 62 L 96 26 L 112 60 L 140 34 L 142 70 L 172 64 L 160 112 Q 150 84 128 90 Q 112 74 96 90 Q 78 76 64 92 Q 50 90 40 112 Z" fill="#2f3e8f" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>
+      ${eyesKid(mood, '#26346e')}${faceKid}
+    </svg>`;
+  }
+
+  /** Neutrale Figur mit Katzenohren-Kapuze */
+  function hoodie(mood = 'normal', cls = '') {
+    return `<svg class="tia ${cls}" viewBox="0 0 200 200" aria-hidden="true">
+      <path d="M 36 70 L 44 22 L 80 50 Z M 164 70 L 156 22 L 120 50 Z" fill="#7a3cff" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M 48 62 L 52 36 L 70 52 Z M 152 62 L 148 36 L 130 52 Z" fill="#ffb3d1"/>
+      <path d="M 22 128 C 18 56 182 56 178 128 L 178 184 L 22 184 Z" fill="#7a3cff" stroke="${INK}" stroke-width="4" stroke-linejoin="round"/>
+      <ellipse cx="100" cy="122" rx="54" ry="54" fill="#ffe0cc" stroke="${INK}" stroke-width="4"/>
+      <path d="M 48 110 Q 60 74 100 76 Q 140 74 152 110 Q 132 92 100 96 Q 68 92 48 110 Z" fill="#5a2a14" stroke="${INK}" stroke-width="3.5" stroke-linejoin="round"/>
+      <g transform="translate(0 6)">${eyesKid(mood, '#3a2a6e')}${faceKid}</g>
+    </svg>`;
+  }
+
+  /** Figur der lernenden Person (nach gewählter Figur) */
+  function me(mood = 'normal', cls = '') {
+    const g = root.GENDER ? root.GENDER() : 'f';
+    return g === 'm' ? boy(mood, cls) : g === 'n' ? hoodie(mood, cls) : tia(mood, cls);
+  }
+
+  const api = { kiko, tia, boy, hoodie, me };
   root.ART = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

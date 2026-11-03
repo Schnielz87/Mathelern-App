@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Base64
+import de.tia.mathequest.BuildConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -201,7 +202,7 @@ class ChatGptAuth(
                     return@use
                 }
                 val html = "<html><head><meta name=viewport content='width=device-width'></head><body style='font-family:sans-serif;text-align:center;padding:40px'>" +
-                    "<h2>Fertig! 🦊</h2><p>Du kannst jetzt zu <b>Tias Mathe-Quest</b> zurückkehren.</p>" +
+                    "<h2>Fertig! 🦊</h2><p>Du kannst jetzt zu <b>$APP_NAME</b> zurückkehren.</p>" +
                     "<p><a href='$APP_RETURN'>Zurück zur App</a></p></body></html>"
                 val body = html.toByteArray()
                 out.write(("HTTP/1.1 302 Found\r\nLocation: $APP_RETURN\r\nContent-Type: text/html; charset=utf-8\r\n" +
@@ -315,8 +316,8 @@ class ChatGptAuth(
     private fun b64decode(s: String) = Base64.decode(s, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
 
     companion object {
-        const val APP_NAME = "Tias Mathe-Quest"
-        const val APP_RETURN = "tiamathe://auth-done"
+        val APP_NAME = BuildConfig.APP_NAME
+        val APP_RETURN = "${BuildConfig.AUTH_SCHEME}://auth-done"
         const val ISSUER = "https://auth.openai.com"
         const val AUTHORIZE = "https://auth.openai.com/api/accounts/authorize"
         const val TOKEN = "https://auth.openai.com/api/accounts/oauth/token"

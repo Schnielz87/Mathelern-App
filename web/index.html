@@ -15,6 +15,8 @@
   <meta name="apple-mobile-web-app-title" content="Mathe-Quest">
   <link rel="preload" href="fonts/bangers.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/version.js"></script>
+  <script src="js/edition.js"></script>
 </head>
 <body>
   <div id="splash">
@@ -25,8 +27,17 @@
     <div class="thumbs">Ich drück dir die Daumen, Tia! 🤞</div>
     <div class="loader"><i></i></div>
   </div>
+  <script>
+    (function () {
+      var E = window.EDITION, name = E.name;
+      try { var s = JSON.parse(localStorage.getItem(E.key) || 'null'); if (s && s.name) name = s.name; } catch (e) {}
+      var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+      document.title = E.app;
+      document.querySelector('#splash .logo').innerHTML = esc(E.logo[0]) + '<span>' + esc(E.logo[1]) + '</span>';
+      document.querySelector('#splash .thumbs').textContent = name ? 'Ich drück dir die Daumen, ' + name + '! 🤞' : 'Ich drück dir die Daumen! 🤞';
+    })();
+  </script>
   <main id="app"></main>
-  <script src="js/version.js"></script>
   <script src="js/mathcore.js"></script>
   <script src="js/figs.js"></script>
   <script src="js/art.js"></script>

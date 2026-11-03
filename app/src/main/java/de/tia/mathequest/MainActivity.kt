@@ -185,6 +185,7 @@ class MainActivity : ComponentActivity() {
     inner class Bridge {
         // ---- Updates ----
         @JavascriptInterface fun version(): String = updater.currentVersion
+        @JavascriptInterface fun edition(): String = BuildConfig.EDITION
         @JavascriptInterface fun checkUpdate(manual: Boolean) = updater.check(manual)
         @JavascriptInterface fun updateState(): String = updater.state.toJson()
         @JavascriptInterface fun installUpdate() = runOnUiThread { updater.install() }

@@ -24,6 +24,7 @@
   };
   const { num, mc, multi, ps, fr, eq } = H;
   const tm = H.term;
+  const N = () => (root.WHO ? root.WHO() : 'Tia');
   const B = (s) => `<b class="hl">${s}</b>`;
 
   // ======================================================================
@@ -118,9 +119,9 @@
 
   // ======================================================================
   const TERM_STORIES = [
-    () => { const n = ri(2, 5), p = ri(2, 6); return { q: `Ein Manga kostet <b>x €</b>. Tia kauft <b>${n}</b> Mangas und ein Lesezeichen für <b>${p} €</b>. Welcher Term passt?`, c: [`${n}x + ${p}`, `${n}(x + ${p})`, `${n + p}x`, `x + ${n * p}`], why: `${n} Mangas = ${n}x, dazu ${p} € → ${n}x + ${p}` }; },
+    () => { const n = ri(2, 5), p = ri(2, 6); return { q: `Ein Manga kostet <b>x €</b>. ${N()} kauft <b>${n}</b> Mangas und ein Lesezeichen für <b>${p} €</b>. Welcher Term passt?`, c: [`${n}x + ${p}`, `${n}(x + ${p})`, `${n + p}x`, `x + ${n * p}`], why: `${n} Mangas = ${n}x, dazu ${p} € → ${n}x + ${p}` }; },
     () => { const b = ri(2, 9); return { q: `Ein Rechteck ist <b>x cm</b> lang und <b>${b} cm</b> breit. Welcher Term ist der Umfang?`, c: [`2x + ${2 * b}`, `${b}x`, `x + ${b}`, `2x + ${b}`], why: `Umfang = 2 · Länge + 2 · Breite = 2x + ${2 * b}` }; },
-    () => { const p = ri(2, 9); return { q: `Tia hat <b>x</b> Sticker. Ihre Freundin hat doppelt so viele und noch <b>${p}</b> mehr. Wie viele hat die Freundin?`, c: [`2x + ${p}`, `x + ${p + 2}`, `2(x + ${p})`, `${p}x + 2`], why: `doppelt so viele = 2x, und ${p} mehr → 2x + ${p}` }; },
+    () => { const p = ri(2, 9); return { q: `${N()} hat <b>x</b> Sticker. Eine Freundin hat doppelt so viele und noch <b>${p}</b> mehr. Wie viele hat die Freundin?`, c: [`2x + ${p}`, `x + ${p + 2}`, `2(x + ${p})`, `${p}x + 2`], why: `doppelt so viele = 2x, und ${p} mehr → 2x + ${p}` }; },
     () => { const p = ri(2, 9), f = ri(2, 4); return { q: `Eine Zahl <b>x</b> wird erst um <b>${p}</b> verkleinert und das Ergebnis dann ${['', '', 'verdoppelt', 'verdreifacht', 'vervierfacht'][f]}.`, c: [`${f}(x − ${p})`, `${f}x − ${p}`, `x − ${f * p}`, `${p} − ${f}x`], why: `Erst x − ${p}, dann alles mal ${f} → Klammer: ${f}(x − ${p})` }; },
   ];
   topic({
@@ -137,7 +138,7 @@
       { t: 'Terme aus Texten', mood: 'cheer',
         k: 'Übersetze Wörter in Mathe: „doppelt“ → 2·x, „um 3 mehr“ → + 3, „die Hälfte“ → x : 2.',
         ex: '<p>„Ein Manga kostet x €. 4 Mangas und 3 € Versand“</p>' + eq('4x + 3'),
-        tia: 'Wie bei einer Geheimsprache!', k2: 'Genau – du bist jetzt Übersetzerin 🕵️‍♀️' },
+        tia: 'Wie bei einer Geheimsprache!', k2: 'Genau – du bist jetzt {g:Übersetzerin|Übersetzer|Geheimcode-Profi} 🕵️' },
     ],
     formulas: ['3x = 3 · x', 'Einsetzen: x durch die Zahl ersetzen (mit Klammer)'],
     gen(lvl) {
@@ -283,7 +284,7 @@
   // ======================================================================
   topic({
     id: 'ausklammern', band: 8, title: 'Ausklammern', sub: 'Rückwärts-Ausmultiplizieren', emoji: '📦',
-    boss: { name: 'Teiler-Tengu', emoji: '👺' }, sticker: { e: '🎀', n: 'Schleifen-Heldin' }, pre: ['ausmult'],
+    boss: { name: 'Teiler-Tengu', emoji: '👺' }, sticker: { e: '🎀', n: '{g:Schleifen-Heldin|Schleifen-Held|Schleifen-Power}' }, pre: ['ausmult'],
     learn: [
       { t: 'Alles wieder einpacken', mood: 'happy',
         k: 'Ausklammern ist <b>Ausmultiplizieren rückwärts</b>. Wir suchen, was <b>in jedem Glied</b> steckt, und stellen es vor die Klammer – wie ein gemeinsames Geschenkband 🎀.',
@@ -367,7 +368,7 @@
   // ======================================================================
   topic({
     id: 'prozent', band: 8, title: 'Prozentrechnung', sub: 'Rabatte & Anteile', emoji: '🏷️',
-    boss: { name: 'Rabatt-Räuber', emoji: '🦹' }, sticker: { e: '🛍️', n: 'Shopping-Queen' }, pre: ['brueche'],
+    boss: { name: 'Rabatt-Räuber', emoji: '🦹' }, sticker: { e: '🛍️', n: '{g:Shopping-Queen|Shopping-King|Shopping-Profi}' }, pre: ['brueche'],
     learn: [
       { t: 'Prozent = von Hundert', mood: 'happy',
         k: '<b>%</b> heißt „von Hundert“. 25 % heißt: 25 von 100. Wie 25 Gummibärchen aus einer Tüte mit 100 🐻.',
@@ -392,7 +393,7 @@
       }
       if (lvl === 2) {
         const G = pick([20, 25, 40, 50, 80, 200]); const p = pick([10, 20, 25, 40, 50, 60, 75]); const W = G * p / 100;
-        const ctx = pick([[`Tia hat ${W} von ${G} Aufgaben richtig.`, 'Wie viel Prozent sind das?'], [`In der Klasse sind ${G} Kinder, ${W} davon lesen gern Manga.`, 'Wie viel Prozent sind das?']]);
+        const ctx = pick([[`${N()} hat ${W} von ${G} Aufgaben richtig.`, 'Wie viel Prozent sind das?'], [`In der Klasse sind ${G} Kinder, ${W} davon lesen gern Manga.`, 'Wie viel Prozent sind das?']]);
         if (!Number.isInteger(W)) return this.gen(lvl);
         return num(ctx.join(' '), p, { unit: '%', tol: 0.05, hint: 'Teil : Ganzes · 100', steps: [`${W} : ${G} = ${fmt(W / G)}`, `${fmt(W / G)} · 100 = <b>${p} %</b>`] });
       }
@@ -426,7 +427,7 @@
     gen(lvl) {
       if (lvl === 1) {
         const K = pick([200, 400, 500, 800, 1000, 1200, 2000, 2500]); const p = pick([1, 2, 3, 4, 5]); const Z = K * p / 100;
-        return num(`Tia legt <b>${fmt(K)} €</b> zu <b>${p} %</b> Zinsen an. Wie viele Zinsen bekommt sie nach einem Jahr?`, Z, { unit: '€', tol: 0.005, hint: 'Z = K · p / 100', steps: [`Z = ${fmt(K)} · ${p} / 100 = <b>${fmt(Z)} €</b>`] });
+        return num(`${N()} legt <b>${fmt(K)} €</b> zu <b>${p} %</b> Zinsen an. Wie viele Zinsen gibt es nach einem Jahr?`, Z, { unit: '€', tol: 0.005, hint: 'Z = K · p / 100', steps: [`Z = ${fmt(K)} · ${p} / 100 = <b>${fmt(Z)} €</b>`] });
       }
       if (lvl === 2) {
         const K = pick([500, 1000, 2000, 4000]); const p = pick([1, 2, 3, 4, 5, 6]); const Z = K * p / 100;

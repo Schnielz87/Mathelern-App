@@ -1,9 +1,9 @@
 /* Offline-Speicher und Updates der Web-App (iPhone/PWA). */
 const VERSION = '__VERSION__';
-const CACHE = 'tia-mathe-' + VERSION;
+const CACHE = 'tia-mathe-' + (self.registration ? new URL(self.registration.scope).pathname.replace(/\W+/g, '') : '') + '-' + VERSION;
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'js/version.js', 'js/mathcore.js', 'js/figs.js', 'js/art.js', 'js/topics8.js', 'js/topics9.js', 'js/topics10.js', 'js/check.js', 'js/app.js', 'js/board.js', 'js/family.js', 'js/ai.js', 'js/lib/qrcode.js', 'js/lib/jsQR.js',
+  'js/version.js', 'js/edition.js', 'js/mathcore.js', 'js/figs.js', 'js/art.js', 'js/topics8.js', 'js/topics9.js', 'js/topics10.js', 'js/check.js', 'js/app.js', 'js/board.js', 'js/family.js', 'js/ai.js', 'js/lib/qrcode.js', 'js/lib/jsQR.js',
   'fonts/bangers.woff2', 'fonts/nunito.woff2', 'fonts/caveat.woff2',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
@@ -18,7 +18,7 @@ self.addEventListener('message', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('tia-mathe-') && k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => (k.startsWith(CACHE.replace(/-[^-]*$/, '-')) || /^tia-mathe-\d/.test(k)) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -31,9 +31,9 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((res) => {
+    caches.open(CACHE).then((c) => c.match(e.request, { ignoreSearch: true })).then((hit) => hit || fetch(e.request).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
       return res;
-    }).catch(() => caches.match('index.html')))
+    }).catch(() => caches.open(CACHE).then((c) => c.match('index.html'))))
   );
 });

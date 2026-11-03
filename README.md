@@ -10,6 +10,13 @@ erkennt Schwachstellen und schließt Wissenslücken gezielt.
 - **iPhone/Web-App (PWA):** https://schnielz87.github.io/Mathelern-App/
 - **Installation:** siehe [ANLEITUNG.md](ANLEITUNG.md)
 
+**Zweite, namensneutrale Variante „Mathe-Manga-Quest“** (Name & Figur werden beim ersten Start gewählt):
+- APK: https://github.com/Schnielz87/Mathelern-App/releases/latest/download/Mathe-Manga-Quest.apk
+- Web-App: https://schnielz87.github.io/Mathelern-App/quest/
+
+Beide Varianten nutzen denselben Code (`web/js/edition.js` legt die Variante fest; Android: `-Pedition=quest`)
+und werden bei jedem Push gemeinsam gebaut und veröffentlicht.
+
 ## Inhalte (28 Kapitel)
 
 | Band | Themen |

@@ -6,6 +6,11 @@ plugins {
 val appVersionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
 val appVersionName = (project.findProperty("versionName") as String?) ?: "1.0.0"
 
+// Variante: "tia" = Tias Mathe-Quest, "quest" = Mathe-Manga-Quest (namensneutral). Bauen mit -Pedition=quest
+val edition = (project.findProperty("edition") as String?) ?: "tia"
+val isQuest = edition == "quest"
+val appName = if (isQuest) "Mathe-Manga-Quest" else "Tias Mathe-Quest"
+
 // Die Lern-App selbst ist die Web-App in ../web – sie wird unveraendert als Assets in die APK gepackt.
 
 android {
@@ -13,13 +18,18 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "de.tia.mathequest"
+        applicationId = if (isQuest) "de.mathemanga.quest" else "de.tia.mathequest"
         minSdk = 24
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
         buildConfigField("String", "GITHUB_REPO", "\"Schnielz87/Mathelern-App\"")
-        buildConfigField("String", "APK_NAME", "\"Tias-Mathe-Quest.apk\"")
+        buildConfigField("String", "APK_NAME", if (isQuest) "\"Mathe-Manga-Quest.apk\"" else "\"Tias-Mathe-Quest.apk\"")
+        buildConfigField("String", "EDITION", "\"$edition\"")
+        buildConfigField("String", "APP_NAME", "\"$appName\"")
+        buildConfigField("String", "AUTH_SCHEME", if (isQuest) "\"mathemanga\"" else "\"tiamathe\"")
+        resValue("string", "app_name", appName)
+        manifestPlaceholders["authScheme"] = if (isQuest) "mathemanga" else "tiamathe"
     }
 
     signingConfigs {
@@ -46,6 +56,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        resValues = true
     }
 
     sourceSets {

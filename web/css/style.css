@@ -388,3 +388,5 @@ input, textarea, select { -webkit-user-select: text; user-select: text; }
 #board.mini .bsub { font-size: 12px; max-height: 52px; padding: 4px 6px; }
 .askkiko { margin-top: 10px; background: linear-gradient(135deg, #ffd23f, #ff5fa2); }
 .askkiko .small { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0; }
+.pickfig .tia { width: 76px; height: 76px; }
+.pickfig.on { background: #fff3c4; box-shadow: 0 0 0 4px var(--pink), 4px 4px 0 var(--ink); }

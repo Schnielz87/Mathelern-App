@@ -8,6 +8,7 @@
   const topic = (o) => TOPICS.push(o);
   const { num, mc, multi, ps, fr, eq } = root.TASK;
   const tm = root.TASK.term;
+  const N = () => (root.WHO ? root.WHO() : 'Tia');
   const B = (s) => `<b class="hl">${s}</b>`;
 
   // ======================================================================
@@ -116,7 +117,7 @@
   // ======================================================================
   topic({
     id: 'linfkt', band: 9, title: 'Lineare Funktionen', sub: 'y = m·x + b', emoji: '📈',
-    boss: { name: 'Geraden-Geist', emoji: '👻' }, sticker: { e: '⚡', n: 'Blitz-Rechnerin' }, pre: ['terme', 'neg'],
+    boss: { name: 'Geraden-Geist', emoji: '👻' }, sticker: { e: '⚡', n: '{g:Blitz-Rechnerin|Blitz-Rechner|Blitz-Rechen-Ass}' }, pre: ['terme', 'neg'],
     learn: [
       { t: 'Eine Funktion ist eine Maschine', mood: 'happy',
         k: 'Eine Funktion ist wie ein Automat 🎰: Du wirfst ein <b>x</b> rein, und es kommt ein <b>y</b> raus.',
@@ -203,7 +204,7 @@
         ex: eq('3(x + 2) = 21') + eq('3x + 6 = 21  | − 6') + eq('3x = 15  | : 3') + eq('x = 5') },
       { t: 'Textaufgaben knacken 🕵️‍♀️', mood: 'happy',
         k: '<ol class="recipe"><li>Was ist gesucht? Das wird <b>x</b>.</li><li>Den Text Stück für Stück in einen Term übersetzen.</li><li>Gleichung aufstellen und lösen.</li><li>Antwortsatz schreiben.</li></ol>',
-        ex: '<p>„Tia ist x Jahre alt. Ihr Bruder ist 3 Jahre älter. Zusammen sind sie 31.“</p>' + eq('x + (x + 3) = 31') + eq('2x + 3 = 31 → x = 14') },
+        ex: '<p>„{N} ist x Jahre alt. Der Bruder ist 3 Jahre älter. Zusammen sind sie 31.“</p>' + eq('x + (x + 3) = 31') + eq('2x + 3 = 31 → x = 14') },
       { t: 'Zahlenrätsel', mood: 'cheer',
         k: '„Ich denke mir eine Zahl …“ – die gedachte Zahl ist x!',
         ex: '<p>„Das Dreifache einer Zahl plus 4 ergibt 19.“</p>' + eq('3x + 4 = 19 → x = 5'),
@@ -221,10 +222,10 @@
         return num(eq(`${a}(${terms([[1, 'x'], [b, '']])}) = ${terms([[c, 'x'], [d, '']])}`), x, { lhs: 'x', hint: 'Klammer auflösen, dann alle x auf eine Seite.', steps: [`${terms([[a, 'x'], [a * b, '']])} = ${terms([[c, 'x'], [d, '']])}`, `${terms([[a - c, 'x'], [a * b, '']])} = ${fmt(d)}`, `${term(a - c, 'x')} = ${fmt(d - a * b)}`, `x = <b>${x}</b>`] });
       }
       const t = ri(0, 2);
-      if (t === 0) { const age = ri(10, 16), d = ri(2, 6); return num(`Tia ist x Jahre alt. Ihre Schwester ist <b>${d} Jahre älter</b>. Zusammen sind sie <b>${2 * age + d}</b> Jahre alt. Wie alt ist Tia?`, age, { unit: 'Jahre', hint: `x + (x + ${d}) = ${2 * age + d}`, steps: [`x + x + ${d} = ${2 * age + d}`, `2x = ${2 * age}`, `x = <b>${age}</b>`] }); }
+      if (t === 0) { const age = ri(10, 16), d = ri(2, 6); return num(`${N()} ist x Jahre alt. Die Schwester ist <b>${d} Jahre älter</b>. Zusammen sind sie <b>${2 * age + d}</b> Jahre alt. Wie alt ist ${N()}?`, age, { unit: 'Jahre', hint: `x + (x + ${d}) = ${2 * age + d}`, steps: [`x + x + ${d} = ${2 * age + d}`, `2x = ${2 * age}`, `x = <b>${age}</b>`] }); }
       if (t === 1) { const k = ri(2, 5), p = ri(1, 12), n = ri(2, 12); return num(`„Ich denke mir eine Zahl. Das <b>${['', '', 'Doppelte', 'Dreifache', 'Vierfache', 'Fünffache'][k]}</b> davon plus <b>${p}</b> ergibt <b>${k * n + p}</b>.“ Welche Zahl ist es?`, n, { hint: `${k}x + ${p} = ${k * n + p}`, steps: [`${k}x + ${p} = ${k * n + p}`, `${k}x = ${k * n}`, `x = <b>${n}</b>`] }); }
       const price = ri(5, 12), fix = ri(2, 8), cnt = ri(2, 6);
-      return num(`Im Manga-Shop zahlt Tia für <b>${cnt}</b> gleich teure Bände und <b>${fix} €</b> Versand zusammen <b>${cnt * price + fix} €</b>. Wie viel kostet ein Band?`, price, { unit: '€', hint: `${cnt}x + ${fix} = ${cnt * price + fix}`, steps: [`${cnt}x + ${fix} = ${cnt * price + fix}`, `${cnt}x = ${cnt * price}`, `x = <b>${price} €</b>`] });
+      return num(`Im Manga-Shop zahlt ${N()} für <b>${cnt}</b> gleich teure Bände und <b>${fix} €</b> Versand zusammen <b>${cnt * price + fix} €</b>. Wie viel kostet ein Band?`, price, { unit: '€', hint: `${cnt}x + ${fix} = ${cnt * price + fix}`, steps: [`${cnt}x + ${fix} = ${cnt * price + fix}`, `${cnt}x = ${cnt * price}`, `x = <b>${price} €</b>`] });
     },
   });
 

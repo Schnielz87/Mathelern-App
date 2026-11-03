@@ -85,7 +85,7 @@ class Updater(private val context: Context) {
         conn.connectTimeout = 15000
         conn.readTimeout = 20000
         conn.setRequestProperty("Accept", "application/vnd.github+json")
-        conn.setRequestProperty("User-Agent", "TiasMatheQuest")
+        conn.setRequestProperty("User-Agent", "MatheQuest")
         try {
             if (conn.responseCode != 200) return null
             val json = JSONObject(conn.inputStream.bufferedReader().readText())

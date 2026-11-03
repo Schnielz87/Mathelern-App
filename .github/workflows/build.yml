@@ -60,24 +60,34 @@ jobs:
         env:
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName=$VERSION --stacktrace
+          # Variante 1: Tias Mathe-Quest
+          ./gradlew assembleRelease -Pedition=tia -PversionCode=${{ github.run_number }} -PversionName=$VERSION --stacktrace
           cp app/build/outputs/apk/release/app-release.apk Tias-Mathe-Quest.apk
+          # Variante 2: Mathe-Manga-Quest (namensneutral)
+          ./gradlew assembleRelease -Pedition=quest -PversionCode=${{ github.run_number }} -PversionName=$VERSION --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk Mathe-Manga-Quest.apk
 
       - name: GitHub-Release veroeffentlichen
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v$VERSION" Tias-Mathe-Quest.apk ANLEITUNG.md \
+          gh release create "v$VERSION" Tias-Mathe-Quest.apk Mathe-Manga-Quest.apk ANLEITUNG.md \
             --target "$GITHUB_SHA" \
-            --title "Tias Mathe-Quest $VERSION" \
-            --notes "Neue Version von Tias Mathe-Quest. Schon installiert? Die App meldet sich von selbst – einfach auf „Jetzt aktualisieren“ tippen. Neu installieren: Tias-Mathe-Quest.apk auf dem Handy öffnen (siehe ANLEITUNG.md)." \
+            --title "Tias Mathe-Quest & Mathe-Manga-Quest $VERSION" \
+            --notes "Neue Version. Tias-Mathe-Quest.apk = Tias App, Mathe-Manga-Quest.apk = namensneutrale App (Name wird beim Start eingegeben). Schon installiert? Die App meldet sich von selbst – einfach auf „Jetzt aktualisieren“ tippen. Anleitung: ANLEITUNG.md" \
             --latest
 
       - name: Web-App (iPhone) auf GitHub Pages veroeffentlichen
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd web
+          # Wurzel = Tias Mathe-Quest, Unterordner quest/ = Mathe-Manga-Quest
+          rm -rf site && cp -r web site && cp -r web site/quest
+          sed -i "s/__EDITION__/tia/" site/js/edition.js
+          sed -i "s/__EDITION__/quest/" site/quest/js/edition.js
+          sed -i 's/"name": "Tias Mathe-Quest"/"name": "Mathe-Manga-Quest"/; s/"short_name": "Mathe-Quest"/"short_name": "Manga-Quest"/' site/quest/manifest.webmanifest
+          sed -i 's/content="Mathe-Quest"/content="Manga-Quest"/; s/<title>Tias Mathe-Quest<\/title>/<title>Mathe-Manga-Quest<\/title>/' site/quest/index.html
+          cd site
           touch .nojekyll
           git init -q -b gh-pages
           git config user.name "github-actions"
