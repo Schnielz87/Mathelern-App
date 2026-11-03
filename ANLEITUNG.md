@@ -30,3 +30,31 @@ Der Lernfortschritt bleibt immer erhalten.
 
 > Der Lernstand wird auf dem jeweiligen Gerät gespeichert. Auf ein anderes Gerät mitnehmen:
 > ⚙️ Einstellungen → „Sicherung“ → Code kopieren und auf dem anderen Gerät einfügen.
+
+## 👨‍👩‍👧 Mama-Handy mit Tias App koppeln
+
+1. **Auf Tias Handy:** Startseite → **„Familie“** → **„Ich bin Tia“**. Ein QR-Code erscheint.
+2. **Auf Mamas iPhone:** Die Web-App (siehe oben) zum Home-Bildschirm hinzufügen und öffnen →
+   **„Familie“** → **„Ich bin Mama / Papa“** → **„QR-Code scannen“** → Code auf Tias Handy scannen.
+   (Alternativ: Auf Tias Handy „Link teilen“ und den Link bei Mama unter „Link einfügen“ eintragen.)
+3. Fertig! Mama sieht jetzt Tias Fortschritt, bekommt **Tipps, worauf sie achten kann**, und kann Tia
+   **Mut-Nachrichten** schicken, die beim nächsten Öffnen von Tias App erscheinen.
+
+Tias App sendet den Lernstand bei jedem Start und nach jeder Übungsrunde – **Ende-zu-Ende-verschlüsselt**
+(der Schlüssel steckt nur im QR-Code). Mamas App zeigt immer den zuletzt empfangenen Stand.
+
+## 🎬 Kikos Tafel (ohne KI, mit Sprache)
+
+- In jeder Aufgabe: **„🎬 Tafel“** – Kiko schreibt eine ähnliche Aufgabe wie von Hand auf kariertes Papier
+  und erklärt sie dabei laut.
+- Bei jedem Thema: **„🎬 Tafel-Erklärung mit Sprache“** – das ganze Thema als Tafel-Film.
+- Ton aus? Dann laufen die Erklärungen als Untertitel mit.
+
+## 🤖 Frag Kiko (KI-Tutor, optional)
+
+Startseite → **„Frag Kiko“** → **Einrichten**:
+- **Android:** **„Mit ChatGPT anmelden“** (benötigt ChatGPT Plus/Pro) – oder ein API-Schlüssel von Google Gemini
+  (kostenlos über aistudio.google.com), OpenAI oder Anthropic. Danach „Modelle laden“ und ein Modell wählen.
+- **iPhone:** API-Schlüssel (Gemini, OpenAI oder Anthropic).
+
+Kiko beantwortet Mathe-Fragen, erklärt Hausaufgaben **an der Tafel** und sagt nach Fehlern **„Warum?“**.

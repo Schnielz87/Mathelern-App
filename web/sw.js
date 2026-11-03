@@ -3,8 +3,8 @@ const VERSION = '__VERSION__';
 const CACHE = 'tia-mathe-' + VERSION;
 const ASSETS = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'js/version.js', 'js/mathcore.js', 'js/figs.js', 'js/art.js', 'js/topics8.js', 'js/topics9.js', 'js/topics10.js', 'js/check.js', 'js/app.js',
-  'fonts/bangers.woff2', 'fonts/nunito.woff2',
+  'js/version.js', 'js/mathcore.js', 'js/figs.js', 'js/art.js', 'js/topics8.js', 'js/topics9.js', 'js/topics10.js', 'js/check.js', 'js/app.js', 'js/board.js', 'js/family.js', 'js/ai.js', 'js/lib/qrcode.js', 'js/lib/jsQR.js',
+  'fonts/bangers.woff2', 'fonts/nunito.woff2', 'fonts/caveat.woff2',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 
@@ -25,7 +25,7 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return; // KI & Familie: immer direkt ins Netz
   if (url.pathname.endsWith('version.json')) {
     e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })));
     return;

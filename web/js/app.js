@@ -214,6 +214,7 @@
         <button class="back" data-act="go" data-arg="settings" aria-label="Einstellungen">⚙️</button>
       </div>
       ${UPD.pending ? `<div class="banner">✨ <span class="grow">Neues Update <b>${esc(UPD.pending.version)}</b> ist da!</span><button class="btn small pink" data-act="update">Holen</button></div>` : ''}
+      ${S.parent ? `<div class="banner">👀 <span class="grow">Fortschritt von <b>${esc((S.parent.snap && S.parent.snap.name) || 'Tia')}</b> ansehen</span><button class="btn small pink" data-act="go" data-arg="eltern">Öffnen</button></div>` : ''}
       ${showIOS ? `<div class="banner ios">📲 <span class="grow small">Als App installieren: unten auf <b>Teilen</b> ⬆️ tippen, dann <b>„Zum Home-Bildschirm“</b>.</span><button class="btn small white" data-act="iosok">OK</button></div>` : ''}
       <div class="panel" style="padding:12px">
         <div class="row small"><span class="grow">${RANKS[r][1]}</span><span>${nextR ? `${S.xp} / ${nextR[0]} XP` : S.xp + ' XP'}</span></div>
@@ -233,6 +234,8 @@
         <button class="tile" data-act="go" data-arg="kapitel"><span class="e">📚</span><span class="t">Kapitel</span><span class="s">Klasse 8 – 10</span></button>
         <button class="tile" data-act="go" data-arg="exam"><span class="e">🎓</span><span class="t">Prüfungs-Training</span><span class="s">Bunt gemischt</span></button>
         <button class="tile" data-act="go" data-arg="album"><span class="e">🃏</span><span class="t">Sammelalbum</span><span class="s">${Object.keys(S.stickers).length} / ${STICKERS.length}</span></button>
+        <button class="tile" data-act="go" data-arg="frag"><span class="e">🦊</span><span class="t">Frag Kiko</span><span class="s">KI-Tutor & Hausaufgaben</span></button>
+        <button class="tile" data-act="go" data-arg="familie"><span class="e">👨‍👩‍👧</span><span class="t">Familie</span><span class="s">${S.pair ? '✔ gekoppelt' : 'mit Mama koppeln'}</span></button>
         <button class="tile" data-act="go" data-arg="formeln"><span class="e">📌</span><span class="t">Formeln</span><span class="s">Spickzettel</span></button>
         <button class="tile" data-act="go" data-arg="progress"><span class="e">📊</span><span class="t">Fortschritt</span><span class="s">auch für Eltern</span></button>
       </div>
@@ -244,6 +247,7 @@
       iosok: () => { sessionStorage.setItem('iosHint', '1'); home(); },
     };
     if (UPD.pending && !UPD.shown) { UPD.shown = true; showUpdate(UPD.pending); }
+    window.FAMILY && window.FAMILY.checkCheers();
   }
 
   // ================= Kapitel =================
@@ -279,6 +283,7 @@
         <div class="small muted">${st.seen ? `${st.ok} richtig · ${st.bad} falsch` : 'Noch nicht geübt'}${st.boss ? ' · 👑 Boss besiegt' : ''}</div>
         <div class="actions">
           <button class="btn ${st.learned ? 'white' : 'pink'} block" data-act="learn">📖 Erklärung ${st.learned ? 'ansehen' : '– starte hier!'}</button>
+          <button class="btn cyan block" data-act="board">🎬 Tafel-Erklärung mit Sprache</button>
           <button class="btn ${st.learned ? 'pink' : 'white'} block" data-act="practice">✏️ Üben (10 Aufgaben)</button>
           <button class="btn violet block" data-act="boss">${t.boss.emoji} Boss-Kampf: ${t.boss.name}</button>
         </div>
@@ -286,7 +291,7 @@
       </div>
       ${pre.length ? `<div class="panel"><h3>🔗 Das hilft dabei</h3>${pre.map((p) => `<div class="row" style="margin:6px 0"><span>${p.emoji}</span><span class="grow">${p.title}</span><span class="small">${pct(tp(p.id).m)}%</span><button class="btn small white" data-act="topic" data-arg="${p.id}">→</button></div>`).join('')}</div>` : ''}
       <div class="panel tilt2"><h3>📌 Spickzettel</h3>${t.formulas.map((f) => `<div class="formula">${f}</div>`).join('')}</div>`;
-    ACT = { back, learn: () => go('learn/' + id), practice: () => startSession({ mode: 'practice', topic: id }), boss: () => startSession({ mode: 'boss', topic: id }), topic: (p) => go('topic/' + p) };
+    ACT = { back, board: () => window.BOARD.open(window.BOARD.fromLearn(t), `${t.emoji} ${t.title}`), learn: () => go('learn/' + id), practice: () => startSession({ mode: 'practice', topic: id }), boss: () => startSession({ mode: 'boss', topic: id }), topic: (p) => go('topic/' + p) };
   }
 
   // ================= Erklärung (Manga-Panels) =================
@@ -297,6 +302,7 @@
       const s = t.learn[i];
       const last = i === t.learn.length - 1;
       app.innerHTML = topbar(`${t.emoji} ${t.title}`) + `
+        <button class="btn small cyan" data-act="board" style="margin:4px 0">🎬 Als Tafel-Film ansehen</button>
         <div class="dots">${t.learn.map((_, k) => `<i class="${k <= i ? 'on' : ''}"></i>`).join('')}</div>
         <div class="mpanel">
           <div class="ptitle">${i + 1}. ${s.t}</div>
@@ -314,6 +320,7 @@
     draw();
     ACT = {
       back,
+      board: () => window.BOARD.open(window.BOARD.fromLearn(t), `${t.emoji} ${t.title}`),
       prev: () => { if (i > 0) { i--; draw(); window.scrollTo(0, 0); } },
       next: () => {
         if (i < t.learn.length - 1) { i++; draw(); window.scrollTo(0, 0); return; }
@@ -460,8 +467,8 @@
       if (!c.finished) html += keypad(kind === 'term' ? keysFor(task) : null);
     }
     if (!c.finished) {
-      const canHint = SESS.mode !== 'check' && SESS.mode !== 'boss';
-      html += `<div class="controls">${canHint ? '<button class="btn white" data-act="hint">💡 Tipp</button>' : '<span></span>'}${kind === 'mc' && !inGuided ? '<span></span>' : '<button class="btn green" data-act="check">Prüfen ✔</button>'}</div>`;
+      const canHint = SESS.mode !== 'check' && SESS.mode !== 'boss' && SESS.mode !== 'exam';
+      html += `<div class="controls ${canHint ? 'three' : ''}">${canHint ? '<button class="btn white" data-act="hint">💡 Tipp</button><button class="btn cyan" data-act="board">🎬 Tafel</button>' : '<span></span>'}${kind === 'mc' && !inGuided ? '<span></span>' : '<button class="btn green" data-act="check">Prüfen ✔</button>'}</div>`;
     }
     html += `<div id="fb">${c.fb || ''}</div>`;
     if (c.finished) html += `<button class="btn pink block" style="margin-top:12px" data-act="next">Weiter →</button>`;
@@ -472,6 +479,9 @@
       field: (k) => { if (!c.finished) { c.active = +k; renderSession(); } },
       check: () => doCheck(),
       hint: () => showHint(),
+      board: () => { c.hint = true; const sim = t.gen.call(t, c.lvl); window.BOARD.open(window.BOARD.fromTask(sim, t), `🎬 ${t.title}`); },
+      why: () => window.AI.explainMistake(task, t, c.given),
+      boardSame: () => window.BOARD.open(window.BOARD.fromTask(task, t), `🎬 ${t.title}`),
       mc: (k) => doCheck(+k),
       next: () => advance(),
     };
@@ -609,13 +619,15 @@
   function fail(r) {
     const c = SESS.cur, task = c.task;
     c.finished = true;
+    c.given = task.kind === 'mc' ? '' : task.kind === 'multi' ? c.inputs.join('; ') : c.inputs[0];
     SESS.combo = 0;
     record(c.id, c.lvl, 0, c.lastGap);
     SESS.results.push({ id: c.id, q: 0 });
     let extra = '';
     if (SESS.mode === 'boss') { SESS.hearts--; extra = SESS.hearts > 0 ? ` Du hast noch ${SESS.hearts} ❤️.` : ''; }
     const gapNote = c.lastGap && byId[c.lastGap] && c.lastGap !== c.id ? `<br>🧩 Das hat mit <b>${byId[c.lastGap].title}</b> zu tun – das üben wir gleich nochmal extra.` : '';
-    c.fb = fbBox('bad', 'sad', `Die richtige Antwort ist <b>${window.CHECK.answerText(task)}</b>.${extra}${gapNote}`, stepsHtml(task));
+    const helpBtns = SESS.mode === 'check' ? '' : `<div class="row" style="margin-top:8px"><button class="btn small cyan grow" data-act="boardSame">🎬 An der Tafel zeigen</button><button class="btn small white grow" data-act="why">🤔 Warum? (KI)</button></div>`;
+    c.fb = fbBox('bad', 'sad', `Die richtige Antwort ist <b>${window.CHECK.answerText(task)}</b>.${extra}${gapNote}`, stepsHtml(task) + helpBtns);
     if (task.kind === 'mc') { const b = app.querySelectorAll('.choice')[task.correct]; b && b.classList.add('ok'); }
     renderSession();
     if (SESS.mode === 'boss' && SESS.hearts <= 0) setTimeout(() => finish(), 1400);
@@ -709,6 +721,7 @@
     else advice = pick(['Jeden Tag ein bisschen – so wirst du richtig stark! 💪', 'Du wirst immer besser, ich sehe das genau! 👀✨', 'Mathe-Power wächst mit jedem Training! ⚡']);
     const changes = Object.keys(s.startM).map((id) => `<div class="pi"><span class="n">${byId[id].emoji} ${byId[id].title}</span><span class="bar ${tp(id).m >= 80 ? 'green' : 'pink'}"><i style="width:${tp(id).m}%"></i></span><span class="p">${pct(tp(id).m)}%</span></div>`).join('');
     const stickers = newStickers.splice(0);
+    window.FAMILY && window.FAMILY.publish(true);
     app.innerHTML = topbar(MODE_TITLE[s.mode]) + `
       <div class="panel result tilt">
         <div style="width:120px;margin:0 auto">${window.ART.kiko(mood)}</div>
@@ -781,6 +794,10 @@
         <div class="setting"><span>🐾 Schritt-für-Schritt-Hilfe</span><select id="gd"><option value="auto">automatisch</option><option value="always">immer</option><option value="off">aus</option></select></div>
       </div>
       <div class="panel">
+        <button class="btn white block" data-act="gok" data-arg="ki">🤖 KI-Tutor einrichten</button>
+        <button class="btn white block" style="margin-top:10px" data-act="gok" data-arg="familie">👨‍👩‍👧 Familie / Eltern-Kopplung</button>
+      </div>
+      <div class="panel">
         <h3>🔄 Updates</h3>
         <p class="small">Version <b>${VERSION}</b>. Die App sucht beim Start und alle 24 Stunden automatisch nach neuen Versionen.</p>
         <button class="btn cyan block" data-act="upd">Jetzt nach Updates suchen</button>
@@ -806,6 +823,7 @@
       back,
       tg: (k, el) => { S.settings[k] = !S.settings[k]; el.classList.toggle('on', S.settings[k]); save(); },
       upd: () => checkUpdate(true),
+      gok: (a) => go(a),
       check: () => startSession({ mode: 'check' }),
       exp: async () => {
         const code = btoa(unescape(encodeURIComponent(JSON.stringify(S))));
@@ -899,6 +917,8 @@
   const ROUTES = {
     '': home, kapitel, topic: topicView, learn, album, formeln, progress, settings,
     practice: (id) => sessionRoute('practice', id), boss: (id) => sessionRoute('boss', id),
+    familie: () => window.FAMILY.viewFamily(), koppeln: () => window.FAMILY.viewPair(), eltern: () => window.FAMILY.viewParent(),
+    pair: (arg) => window.FAMILY.acceptPair(arg), frag: () => window.AI.viewChat(), ki: () => window.AI.viewSettings(),
     mission: () => sessionRoute('mission'), train: () => sessionRoute('train'), check: () => sessionRoute('check'), exam: () => sessionRoute('exam'),
   };
   function render() {
@@ -913,7 +933,14 @@
 
   // ================= Start =================
   $('#splashKiko').outerHTML = window.ART.kiko('cheer');
+  window.APP = {
+    get S() { return S; }, save, go, back, modal, toast, topbar, esc, byId, TOP, tp, RANKS, rankIdx, dayKey, BANDS, sound, startSession, NATIVE, VERSION,
+    app, setAct: (o) => { ACT = o; },
+  };
+  const pairLink = location.hash.match(/^#\/pair\/(.+)$/);
   if (location.hash && location.hash !== '#/') { history.replaceState(null, '', '#/'); }
+  if (pairLink) setTimeout(() => { history.pushState(null, '', '#/pair/' + pairLink[1]); render(); }, 3100);
+  setTimeout(() => { if (window.FAMILY) { window.FAMILY.publish(false); window.FAMILY.checkCheers(); } }, 5000);
   render();
   setTimeout(() => {
     const sp = $('#splash');

@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -21,6 +23,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import de.tia.mathequest.ai.AiMessage
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -30,9 +37,16 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
 
     private lateinit var web: WebView
-    private val updater get() = (application as TiaApp).updater
+    private val tia get() = application as TiaApp
+    private val updater get() = tia.updater
+    private var pendingCamera: PermissionRequest? = null
 
     private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val req = pendingCamera ?: return@registerForActivityResult
+        pendingCamera = null
+        if (granted) req.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) else req.deny()
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,9 +54,9 @@ class MainActivity : ComponentActivity() {
         web = WebView(this)
         setContentView(web)
 
-        // Platz fuer Statusleiste/Navigationsleiste lassen
+        // Platz fuer Statusleiste, Navigationsleiste und Tastatur lassen
         ViewCompat.setOnApplyWindowInsetsListener(web) { v, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime())
             v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             WindowInsetsCompat.CONSUMED
         }
@@ -72,9 +86,25 @@ class MainActivity : ComponentActivity() {
                 return true
             }
         }
+        // Kamera fuer das Scannen des Kopplungs-QR-Codes (Eltern-Ansicht)
+        web.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequest(request: PermissionRequest) {
+                runOnUiThread {
+                    if (PermissionRequest.RESOURCE_VIDEO_CAPTURE !in request.resources) { request.deny(); return@runOnUiThread }
+                    if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                    } else {
+                        pendingCamera = request
+                        cameraPermission.launch(Manifest.permission.CAMERA)
+                    }
+                }
+            }
+        }
         web.addJavascriptInterface(Bridge(), "TiaNative")
 
-        updater.listener = { s -> sendUpdateState(s) }
+        updater.listener = { s -> js("window.onNativeUpdate && window.onNativeUpdate(${JSONObject.quote(s.toJson())})") }
+        tia.tts.onDone = { id -> js("window.onNativeSpeech && window.onNativeSpeech(${JSONObject.quote(id)})") }
+        tia.ai.chatGpt.onChange = { js("window.onNativeAiState && window.onNativeAiState()") }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -90,6 +120,13 @@ class MainActivity : ComponentActivity() {
         ) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
+    /** Rueckkehr nach "Mit ChatGPT anmelden" (tiamathe://auth-done): App kommt wieder nach vorn. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        js("window.onNativeAiState && window.onNativeAiState()")
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         web.saveState(outState)
@@ -102,16 +139,23 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         updater.listener = null
+        tia.tts.onDone = null
+        tia.ai.chatGpt.onChange = null
+        tia.tts.stop()
         super.onDestroy()
     }
 
-    private fun sendUpdateState(s: Updater.State) {
-        val js = "window.onNativeUpdate && window.onNativeUpdate(${JSONObject.quote(s.toJson())})"
-        web.post { web.evaluateJavascript(js, null) }
+    private fun js(code: String) {
+        if (!::web.isInitialized) return
+        web.post { web.evaluateJavascript(code, null) }
     }
+
+    private fun aiCallback(id: String, o: JSONObject) =
+        js("window.onNativeAi && window.onNativeAi(${JSONObject.quote(id)}, ${JSONObject.quote(o.toString())})")
 
     /** Schnittstelle fuer die Web-App (window.TiaNative). */
     inner class Bridge {
+        // ---- Updates ----
         @JavascriptInterface fun version(): String = updater.currentVersion
         @JavascriptInterface fun checkUpdate(manual: Boolean) = updater.check(manual)
         @JavascriptInterface fun updateState(): String = updater.state.toJson()
@@ -124,6 +168,57 @@ class MainActivity : ComponentActivity() {
             val v = getSystemService(Vibrator::class.java) ?: return
             if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createOneShot(ms.toLong().coerceIn(10, 400), VibrationEffect.DEFAULT_AMPLITUDE))
             else @Suppress("DEPRECATION") v.vibrate(ms.toLong())
+        }
+
+        // ---- Sprache (Kikos Tafel) ----
+        @JavascriptInterface fun ttsAvailable(): Boolean = tia.tts.ready
+        @JavascriptInterface fun speak(text: String, id: String) = tia.tts.speak(text.take(3000), id)
+        @JavascriptInterface fun stopSpeaking() = tia.tts.stop()
+
+        // ---- KI-Tutor ----
+        @JavascriptInterface fun aiState(): String = tia.ai.stateJson()
+        @JavascriptInterface fun aiSetProvider(p: String) { tia.ai.setProvider(p) }
+        @JavascriptInterface fun aiSetKey(p: String, key: String) { tia.ai.setKey(p, key) }
+        @JavascriptInterface fun aiSetModel(p: String, m: String) { tia.ai.setModel(p, m) }
+        @JavascriptInterface fun aiSignIn() = runOnUiThread { tia.ai.chatGpt.signIn() }
+        @JavascriptInterface fun aiCancel() = runOnUiThread { tia.ai.chatGpt.cancel() }
+        @JavascriptInterface fun aiSignOut() = runOnUiThread { tia.ai.chatGpt.signOut() }
+
+        @JavascriptInterface fun aiModels(id: String, p: String) {
+            tia.scope.launch(Dispatchers.IO) {
+                try {
+                    val arr = JSONArray()
+                    tia.ai.listModels(p).forEach { arr.put(JSONObject().put("id", it.id).put("name", it.name)) }
+                    aiCallback(id, JSONObject().put("models", arr))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    aiCallback(id, JSONObject().put("error", "Keine Verbindung. Bitte Internet prüfen."))
+                } catch (e: Exception) {
+                    aiCallback(id, JSONObject().put("error", e.message ?: "Fehler"))
+                }
+            }
+        }
+
+        @JavascriptInterface fun aiAsk(id: String, instructions: String, historyJson: String) {
+            tia.scope.launch(Dispatchers.IO) {
+                try {
+                    val arr = JSONArray(historyJson)
+                    val hist = (0 until arr.length()).map { arr.getJSONObject(it) }.map { AiMessage(it.optBoolean("user"), it.optString("text")) }
+                    var last = 0L
+                    val text = tia.ai.reply(instructions, hist) { partial ->
+                        val now = System.currentTimeMillis()
+                        if (now - last > 120) { last = now; aiCallback(id, JSONObject().put("delta", partial)) }
+                    }
+                    aiCallback(id, JSONObject().put("text", text))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: java.io.IOException) {
+                    aiCallback(id, JSONObject().put("error", "Keine Verbindung zur KI. Bitte Internet prüfen."))
+                } catch (e: Exception) {
+                    aiCallback(id, JSONObject().put("error", e.message ?: "Die KI konnte nicht antworten."))
+                }
+            }
         }
     }
 }

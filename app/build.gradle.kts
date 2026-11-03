@@ -60,4 +60,6 @@ dependencies {
     implementation("androidx.activity:activity:1.13.0")
     implementation("androidx.webkit:webkit:1.18.0")
     implementation("androidx.work:work-runtime:2.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 }

@@ -325,3 +325,46 @@ select { font: inherit; border: 3px solid var(--ink); border-radius: 10px; paddi
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
 @media (max-width: 360px) { .key { height: 46px; font-size: 21px; } .tile.big .t { font-size: 22px; } }
 input, textarea, select { -webkit-user-select: text; user-select: text; }
+
+/* ---------- Kikos Tafel ---------- */
+@font-face { font-family: 'Caveat'; src: url('../fonts/caveat.woff2') format('woff2'); font-weight: 400 700; font-display: swap; }
+#board { position: fixed; inset: 0; z-index: 80; background: #2b1055; display: flex; flex-direction: column; padding: calc(8px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)); animation: fadeIn .2s; }
+#board .bhead { display: flex; align-items: center; gap: 8px; color: #fff; }
+#board .btitle { flex: 1; font-family: 'Bangers'; letter-spacing: 1px; font-size: 22px; text-shadow: 2px 2px 0 var(--ink); }
+#board .paper {
+  flex: 1; position: relative; overflow-y: auto; margin: 8px 0; border: 4px solid var(--ink); border-radius: 10px; box-shadow: 5px 5px 0 var(--ink);
+  background-color: #fdfdf8;
+  background-image: linear-gradient(rgba(70, 130, 220, .22) 1px, transparent 1px), linear-gradient(90deg, rgba(70, 130, 220, .22) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 38px, rgba(230, 57, 70, .45) 38px, rgba(230, 57, 70, .45) 40px, transparent 40px);
+  background-size: 22px 22px, 22px 22px, 100% 100%; background-attachment: local; padding: 14px 12px 60px 50px;
+}
+#board .lines { transition: opacity .3s, transform .3s; }
+#board .lines.flip { opacity: 0; transform: translateX(-40px) rotate(-2deg); }
+#board .bl { font-family: 'Caveat', 'Comic Sans MS', cursive; font-weight: 700; color: #1d3a8a; font-size: 27px; line-height: 44px; min-height: 44px; word-break: break-word; }
+#board .bl.h { font-size: 33px; color: #c2185b; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+#board .bl.eq { font-size: 31px; color: #14213d; }
+#board .bl.res { font-size: 33px; color: #0b8a3e; display: inline-block; border: 3px solid #0b8a3e; border-radius: 40% 50% 45% 55%; padding: 0 14px; margin: 6px 0; }
+#board .bl.n { font-size: 25px; color: #3a3a5a; line-height: 36px; }
+#board .bl.c-v { color: #6b2fd6; } #board .bl.c-p { color: #c2185b; }
+#board .bfig { background: rgba(255, 255, 255, .7); border-radius: 10px; margin: 6px 0; animation: fadeIn .6s; }
+#board .bfig svg { max-height: 200px; }
+#board .pen { position: absolute; font-size: 30px; transform: rotate(-10deg); pointer-events: none; transition: opacity .3s; opacity: 0; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, .25)); }
+#board .bfoot { display: flex; gap: 8px; align-items: flex-end; min-height: 64px; }
+#board .bkiko { width: 64px; height: 64px; flex: none; }
+#board .bkiko .kiko.talk { animation: talk .35s ease-in-out infinite alternate; }
+#board .bsub { flex: 1; background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 6px 10px; font-weight: 800; font-size: 15px; line-height: 1.3; max-height: 84px; overflow-y: auto; }
+#board .bsub:empty { visibility: hidden; }
+#board .bctl { display: flex; justify-content: center; gap: 14px; margin-top: 8px; }
+.bbtn { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--ink); background: #fff; color: var(--ink); box-shadow: 3px 3px 0 var(--ink); font-size: 20px; display: grid; place-items: center; }
+.bbtn.big { width: 60px; height: 60px; background: var(--yellow); font-size: 24px; }
+.bbtn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+@keyframes talk { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-4px) rotate(2deg); } }
+.controls.three { grid-template-columns: 1fr 1fr 1.5fr; }
+
+/* Familie & KI */
+.qr { width: min(70vw, 260px); margin: 8px auto; background: #fff; border: 3px solid var(--ink); border-radius: 12px; padding: 6px; }
+.qr svg { display: block; width: 100%; height: auto; }
+.ptip { display: flex; gap: 10px; margin: 10px 0; font-size: 15px; line-height: 1.4; }
+.ptip > span { font-size: 24px; flex: none; }
+.chips.cheer { justify-content: flex-start; }
+#chatbox .bubble { font-size: 16px; }

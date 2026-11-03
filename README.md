@@ -29,7 +29,13 @@ Schritt-für-Schritt-Hilfe, Lösungswege, Spickzettel und ein **Boss-Kampf**.
 - **Tagesmission & Schwächen-Training** mischen gezielt schwache und fällige Themen (Wiederholung mit Abständen).
 - Stufen passen sich an: läuft es gut, wird es schwerer; hakt es, kommt die Schritt-für-Schritt-Hilfe.
 - **Motivation:** XP, Ränge (Mathe-Neuling bis Mathe-Göttin), Tages-Serie, Combos, 37 Sammel-Sticker, Effekte & Töne.
-- **Für Eltern:** Übersicht unter „Fortschritt“.
+- **Für Eltern:** Übersicht unter „Fortschritt“ – und **Familien-Kopplung per QR-Code**: Mamas App (z. B. iPhone)
+  zeigt Tias Lernstand mit konkreten Tipps zum Unterstützen; Mama kann Mut-Nachrichten schicken.
+  Übertragung Ende-zu-Ende-verschlüsselt (AES-GCM, Schlüssel nur im QR-Code) über ntfy.sh.
+- **Kikos Tafel:** Aufgaben und ganze Themen werden animiert wie von Hand auf kariertes Papier geschrieben und
+  gleichzeitig vorgelesen (Web Speech bzw. Android-Sprachausgabe) – ohne KI, offline.
+- **Frag Kiko (optional, KI):** „Mit ChatGPT anmelden“ (Android, wie in der Englisch-App inkl. Netzwerk-Wiederholung
+  beim Token-Austausch) oder API-Schlüssel (Gemini/OpenAI/Claude). Chat, Hausaufgaben an der Tafel, „Warum?“ nach Fehlern.
 
 ## Technik
 
@@ -44,5 +50,7 @@ Schritt-für-Schritt-Hilfe, Lösungswege, Spickzettel und ein **Boss-Kampf**.
 - **Signatur:** `signing/tia-release.jks` liegt bewusst im Repo, damit jede Version als Update zur installierten App
   passt. Optional ersetzbar über die GitHub-Secrets `SIGNING_KEYSTORE_BASE64` und `SIGNING_PASSWORD`
   (dann muss die App einmal neu installiert werden).
+
+**GitHub Pages einmalig einschalten:** Repo → Settings → Pages → „Deploy from a branch“ → Branch `gh-pages`, Ordner `/ (root)` → Save.
 
 Lokal testen: `cd web && python3 -m http.server` → http://localhost:8000 · Tests: `node tests/content.test.js`
