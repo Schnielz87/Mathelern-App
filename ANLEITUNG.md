@@ -40,6 +40,14 @@ Der Lernfortschritt bleibt immer erhalten.
 3. Fertig! Mama sieht jetzt Tias Fortschritt, bekommt **Tipps, worauf sie achten kann**, und kann Tia
    **Mut-Nachrichten** schicken, die beim nächsten Öffnen von Tias App erscheinen.
 
+**Eltern-Handy mit Android:** Einfach dieselbe APK installieren und dort koppeln (Familie → „Ich bin Mama / Papa“).
+Das Eltern-Handy öffnet danach direkt die **Eltern-Ansicht** (über „Selbst lernen“ geht es in den Lern-Bereich).
+- **Mehrere Kinder:** „➕ Weiteres Kind koppeln“ – alle Kinder erscheinen auf einen Blick.
+- **Benachrichtigungen (nur Android):** Die App schaut alle 3 Stunden im Hintergrund nach und meldet z. B.
+  „💪 Max hat heute geübt – 12 Aufgaben (85 % richtig)“, „👑 … hat einen Boss besiegt“ oder
+  „⏰ … hat seit 3 Tagen nicht geübt“. Ein- und ausschalten unten in der Eltern-Ansicht.
+- **iPhone:** Statt Benachrichtigungen zeigt die App beim Öffnen „🎉 Seit deinem letzten Besuch: …“.
+
 Tias App sendet den Lernstand bei jedem Start und nach jeder Übungsrunde – **Ende-zu-Ende-verschlüsselt**
 (der Schlüssel steckt nur im QR-Code). Mamas App zeigt immer den zuletzt empfangenen Stand.
 

@@ -57,6 +57,8 @@
     const recent = S.history.filter((h) => h[0] > weekAgo);
     const topics = {};
     TOP.forEach((t) => { const st = tp(t.id); if (st.seen || st.learned) topics[t.id] = [Math.round(st.m), st.seen, st.ok, st.bad, Math.round(st.last / 1000), st.boss ? 1 : 0, st.lvl]; });
+    const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    const todayH = S.history.filter((h) => h[0] >= t0.getTime());
     const errs = {};
     S.history.slice(-60).forEach((h) => { if (h[2] === 0) errs[h[1]] = (errs[h[1]] || 0) + 1; });
     const gaps = {};
@@ -66,6 +68,8 @@
       days, ok: S.totalOk, tasks: S.totalTasks, acc7: recent.length ? Math.round(recent.filter((h) => h[2] > 0).length / recent.length * 100) : null,
       n7: recent.length, topics, gaps, errs, stickers: Object.keys(S.stickers).length, missions: Object.keys(S.missions).filter((d) => d >= dayKey(new Date(weekAgo))).length,
       checkup: S.checkup,
+      today: { n: todayH.length, ok: todayH.filter((h) => h[2] > 0).length },
+      lastActive: S.history.length ? S.history[S.history.length - 1][0] : 0,
     };
   }
 
@@ -161,7 +165,7 @@
     app.innerHTML = topbar('👨‍👩‍👧 Familie') + `
       <div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Hier koppelst du die App mit Mama oder Papa. Dann sehen sie deinen Fortschritt und können dir Mut-Nachrichten schicken. 💌</div></div>
       <button class="tcard" data-act="kid"><span class="e">🦊</span><span class="grow"><span class="t">Ich bin ${A().esc(S.name || 'das Kind')}</span><br><span class="s">${S.pair ? '✔ gekoppelt – QR-Code zeigen' : 'QR-Code für Mama/Papa anzeigen'}</span></span></button>
-      <button class="tcard" data-act="parent"><span class="e">👀</span><span class="grow"><span class="t">Ich bin Mama / Papa</span><br><span class="s">${S.parent ? '✔ gekoppelt – Fortschritt ansehen' : 'QR-Code beim Kind scannen'}</span></span></button>`;
+      <button class="tcard" data-act="parent"><span class="e">👀</span><span class="grow"><span class="t">Ich bin Mama / Papa</span><br><span class="s">${kids().length ? `✔ ${kids().length} Kind${kids().length > 1 ? 'er' : ''} gekoppelt` : 'QR-Code beim Kind scannen'}</span></span></button>`;
     setAct({ back, kid: () => go('koppeln'), parent: () => go('eltern') });
   }
 
@@ -198,58 +202,150 @@
     const m = String(s).match(/(tmq-[a-z0-9]{10,40})\.([A-Za-z0-9_-]{40,50})/);
     return m ? { topic: m[1], key: m[2] } : null;
   }
+  // ---------------- Eltern: mehrere Kinder ----------------
+  /** Liste der gekoppelten Kinder (übernimmt alte Einzel-Kopplung). */
+  function kids() {
+    const { S, save } = A();
+    if (S.parent) { S.parents = [...(S.parents || []), S.parent]; delete S.parent; if (!S.totalTasks && S.parentMode === undefined) S.parentMode = true; save(); }
+    if (!S.parents) S.parents = [];
+    return S.parents;
+  }
+  const kidName = (p) => (p.snap && p.snap.name) || p.name || 'Kind';
+  /** Genitiv: Lea -> Leas, Max -> Max’ */
+  const gen = (n) => (/[sßxz]$/i.test(n) ? n + '’' : n + 's');
+
+  /** Android: Kopplungen an die App geben, damit sie im Hintergrund nachsehen und benachrichtigen kann. */
+  function syncNative() {
+    const N = root.TiaNative;
+    if (!N || !N.setParentLinks) return;
+    const { S } = A();
+    try {
+      N.setParentLinks(JSON.stringify({ notify: S.parentNotify !== false, kids: kids().map((p) => ({ topic: p.topic, key: p.key, name: kidName(p) })) }));
+    } catch (e) { /* egal */ }
+  }
+
   function acceptPair(arg) {
     const { S, save, go, toast } = A();
     const p = parsePair(arg);
     if (!p) { toast('Der Code ist ungültig.'); go('eltern'); return; }
-    S.parent = { ...p, at: Date.now(), snap: null };
+    const list = kids();
+    if (!list.find((k) => k.topic === p.topic)) list.push({ ...p, at: Date.now(), snap: null });
+    S.parentMode = true;
     save();
+    syncNative();
     toast('Gekoppelt! 🎉');
-    history.replaceState(null, '', '#/eltern');
-    viewParent();
-    refreshParent(true);
+    history.replaceState(null, '', '#/eltern/' + p.topic);
+    viewParent(p.topic);
+    refreshParent(p.topic, true);
   }
 
-  async function refreshParent(show) {
+  async function refreshParent(topic, show) {
     const { S, save, toast } = A();
-    const p = S.parent; if (!p) return;
-    try {
-      const msgs = await poll(p);
-      const snaps = msgs.filter((m) => m.type === 'snap').sort((a, b) => b.at - a.at);
-      if (snaps[0] && (!p.snap || snaps[0].at > p.snap.at)) p.snap = snaps[0];
-      p.lastFetch = Date.now(); p.err = '';
-      save();
-    } catch (e) { p.err = 'Gerade keine Verbindung.'; }
-    if (show && /^#\/eltern/.test(location.hash)) viewParent();
-    else if (show) toast(p.err || 'Aktualisiert');
+    const list = topic ? kids().filter((k) => k.topic === topic) : kids();
+    for (const p of list) {
+      try {
+        const msgs = await poll(p);
+        const snaps = msgs.filter((m) => m.type === 'snap').sort((a, b) => b.at - a.at);
+        if (snaps[0] && (!p.snap || snaps[0].at > p.snap.at)) { p.snap = snaps[0]; p.name = snaps[0].name; }
+        p.lastFetch = Date.now(); p.err = '';
+      } catch (e) { p.err = 'Gerade keine Verbindung.'; }
+    }
+    save();
+    syncNative();
+    if (!show) return;
+    const h = location.hash;
+    if (/^#\/eltern\/?$/.test(h) || h === '#/' || h === '') viewParent();
+    else if (topic && h === '#/eltern/' + topic) viewParent(topic);
   }
 
-  function viewParent() {
-    const { S, save, topbar, setAct, back, app, esc, byId, TOP, BANDS, modal, toast } = A();
-    if (!S.parent) {
-      app.innerHTML = topbar('👀 Eltern-Ansicht') + `
-        <div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Hallo! Scanne den QR-Code, den dein Kind in seiner App unter <b>Familie → „Ich bin …“</b> zeigt. Danach siehst du hier ihren Fortschritt und bekommst Tipps. 🦊</div></div>
-        <button class="btn pink block" data-act="scan">📷 QR-Code scannen</button>
-        <div class="panel"><p class="small">Oder den Kopplungs-Link einfügen:</p><textarea id="pl" placeholder="https://…#/pair/…"></textarea><button class="btn white block" style="margin-top:8px" data-act="paste">Koppeln</button></div>`;
-      setAct({ back, scan: () => scan((t) => acceptPair(t)), paste: () => acceptPair($('#pl').value) });
-      return;
-    }
-    const p = S.parent, sn = p.snap;
+  const ago = (ts) => { const m = Math.round((Date.now() - ts) / 60000); return m < 2 ? 'gerade eben' : m < 60 ? `vor ${m} Min.` : m < 1440 ? `vor ${Math.round(m / 60)} Std.` : `vor ${Math.round(m / 1440)} Tagen`; };
+  const lastActive = (sn) => sn.lastActive || (sn.sLast ? new Date(sn.sLast + 'T18:00').getTime() : 0);
+
+  /** Eltern-Startseite: alle Kinder auf einen Blick. topic gesetzt -> Detailansicht. */
+  function viewParent(topic) {
+    const { S, save, topbar, setAct, back, app, esc, go, modal } = A();
+    const list = kids();
+    if (topic === 'neu' || !list.length) return viewAdd();
+    if (topic || list.length === 1) return viewKid(topic ? list.find((k) => k.topic === topic) : list[0]);
+    const home = location.hash === '#/' || location.hash === '';
+    app.innerHTML = (home ? `<div class="topbar"><h2>👀 Eltern-Ansicht</h2><button class="back" data-act="settings" aria-label="Einstellungen">⚙️</button></div>` : topbar('👀 Eltern-Ansicht')) + `
+      ${list.map((p) => { const sn = p.snap; return `
+        <button class="tcard" data-act="kid" data-arg="${p.topic}">
+          <span class="e">${sn ? ({ m: '👦', n: '🐱' }[sn.gender] || '👧') : '⏳'}</span>
+          <span class="grow"><span class="t">${esc(kidName(p))}</span><br>
+            <span class="s">${sn ? `${esc(sn.rank)} · ${sn.today && sn.today.n ? `heute ${sn.today.n} Aufgaben` : 'zuletzt aktiv ' + ago(lastActive(sn))} · ${sn.acc7 === null ? '–' : sn.acc7 + ' % richtig'}` : 'noch kein Lernstand'}</span></span>
+          <span>›</span>
+        </button>`; }).join('')}
+      <button class="btn white block" data-act="add">➕ Weiteres Kind koppeln</button>
+      ${modeButtons()}`;
+    setAct({ back, kid: (t) => go('eltern/' + t), add: () => go('eltern/neu'), settings: () => go('settings'), ...modeActs() });
+    if (list.some((p) => !p.lastFetch || Date.now() - p.lastFetch > 60000)) refreshParent(null, true);
+  }
+
+  function modeButtons() {
+    const { S } = A();
+    const native = !!(root.TiaNative && root.TiaNative.setParentLinks);
+    return `<div class="panel">
+      ${native ? `<div class="setting"><span>🔔 Benachrichtigungen<br><span class="small muted">Meldung, wenn geübt wurde, ein Boss besiegt wurde oder 3 Tage Pause sind</span></span><button class="toggle ${S.parentNotify !== false ? 'on' : ''}" data-act="notify"></button></div>`
+        : '<p class="small muted">🔔 Automatische Benachrichtigungen gibt es in der Android-App. Hier siehst du beim Öffnen, was seit deinem letzten Besuch passiert ist.</p>'}
+      <button class="btn white block" style="margin-top:10px" data-act="learn">🎓 Selbst lernen (Lern-Bereich öffnen)</button>
+    </div>`;
+  }
+  function modeActs() {
+    const { S, save, go } = A();
+    return {
+      notify: (a, el) => { S.parentNotify = S.parentNotify === false; el.classList.toggle('on', S.parentNotify !== false); save(); syncNative(); },
+      learn: () => { S.parentMode = false; save(); location.hash = '#/'; if (location.hash === '#/') A().render(); },
+    };
+  }
+
+  function viewAdd() {
+    const { topbar, setAct, back, app } = A();
+    app.innerHTML = topbar('👀 Kind koppeln') + `
+      <div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Scanne den QR-Code, den dein Kind in seiner App unter <b>Familie → „Ich bin …“</b> zeigt. Danach siehst du hier den Fortschritt und bekommst Tipps. Du kannst auch <b>mehrere Kinder</b> koppeln. 🦊</div></div>
+      <button class="btn pink block" data-act="scan">📷 QR-Code scannen</button>
+      <div class="panel"><p class="small">Oder den Kopplungs-Link einfügen:</p><textarea id="pl" placeholder="https://…#/pair/…"></textarea><button class="btn white block" style="margin-top:8px" data-act="paste">Koppeln</button></div>
+      ${standaloneHint()}`;
+    setAct({ back, scan: () => scan((t) => acceptPair(t)), paste: () => acceptPair($('#pl').value) });
+  }
+
+  /** Was ist seit dem letzten Besuch passiert? (vor allem fürs iPhone ohne Benachrichtigungen) */
+  function sinceLast(p) {
+    const sn = p.snap, old = p.seen;
+    if (!sn || !old || sn.at <= old.at) return '';
+    const items = [];
+    const dTasks = (sn.tasks || 0) - (old.tasks || 0), dXp = (sn.xp || 0) - (old.xp || 0);
+    if (dTasks > 0) items.push(`✏️ <b>${dTasks}</b> Aufgaben gelöst (+${dXp} XP)`);
+    const bosses = (o) => Object.values(o.topics || {}).filter((a) => a[5]).length;
+    if (bosses(sn) > bosses(old)) items.push(`👑 <b>${bosses(sn) - bosses(old)}</b> Boss besiegt`);
+    if ((sn.stickers || 0) > (old.stickers || 0)) items.push(`🃏 <b>${sn.stickers - old.stickers}</b> neue Sticker`);
+    if (sn.rank !== old.rank) items.push(`⬆️ Neuer Rang: <b>${A().esc(sn.rank)}</b>`);
+    return items.length ? `<div class="banner">🎉 <span class="grow small"><b>Seit deinem letzten Besuch:</b><br>${items.join('<br>')}</span></div>` : '';
+  }
+
+  function viewKid(p) {
+    const { S, save, topbar, setAct, back, app, esc, byId, TOP, BANDS, modal, toast, go } = A();
+    if (!p) return viewParent();
+    const sn = p.snap;
+    const single = kids().length === 1;
+    const home = location.hash === '#/' || location.hash === '';
+    const bar = home ? `<div class="topbar"><h2>👀 ${sn ? esc(gen(kidName(p))) + ' Fortschritt' : esc(kidName(p))}</h2><button class="back" data-act="settings" aria-label="Einstellungen">⚙️</button></div>` : topbar(`👀 ${sn ? esc(gen(kidName(p))) + ' Fortschritt' : esc(kidName(p))}`);
     if (!sn) {
-      app.innerHTML = topbar('👀 Eltern-Ansicht') + `<div class="sensei">${root.ART.kiko('think')}<div class="bubble">Gekoppelt ✔ – aber es ist noch kein Lernstand angekommen. Die App des Kindes muss einmal geöffnet werden (mit Internet). ${p.err ? '<br><b>' + esc(p.err) + '</b>' : ''}</div></div>
-        <button class="btn cyan block" data-act="ref">🔄 Aktualisieren</button>${standaloneHint()}<button class="btn white block" style="margin-top:12px" data-act="unpair">Entkoppeln</button>`;
-      setAct({ back, ref: () => refreshParent(true), unpair });
-      if (!p.lastFetch || Date.now() - p.lastFetch > 15000) refreshParent(true);
+      app.innerHTML = bar + `<div class="sensei">${root.ART.kiko('think')}<div class="bubble">Gekoppelt ✔ – aber es ist noch kein Lernstand angekommen. Die App des Kindes muss einmal geöffnet werden (mit Internet). ${p.err ? '<br><b>' + esc(p.err) + '</b>' : ''}</div></div>
+        <button class="btn cyan block" data-act="ref">🔄 Aktualisieren</button>${single ? '<button class="btn white block" style="margin-top:10px" data-act="add">➕ Weiteres Kind koppeln</button>' : ''}${standaloneHint()}<button class="btn white block" style="margin-top:12px" data-act="unpair">Entkoppeln</button>${single ? modeButtons() : ''}`;
+      setAct({ back, ref: () => refreshParent(p.topic, true), unpair, add: () => go('eltern/neu'), settings: () => go('settings'), ...modeActs() });
+      if (!p.lastFetch || Date.now() - p.lastFetch > 15000) refreshParent(p.topic, true);
       return;
     }
     const days = Array.from({ length: 14 }, (_, k) => { const d = new Date(Date.now() - (13 - k) * 864e5); return { k: A().dayKey(d), l: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()] }; });
     const maxXp = Math.max(60, ...days.map((d) => sn.days[d.k] || 0));
-    const ago = (ts) => { const m = Math.round((Date.now() - ts) / 60000); return m < 2 ? 'gerade eben' : m < 60 ? `vor ${m} Min.` : m < 1440 ? `vor ${Math.round(m / 60)} Std.` : `vor ${Math.round(m / 1440)} Tagen`; };
     const tips = tipsFor(sn);
-    app.innerHTML = topbar(`👀 ${esc(sn.name)}s Fortschritt`) + `
+    const news = sinceLast(p);
+    app.innerHTML = bar + `
+      ${news}
       <div class="panel">
         <div class="row"><span class="grow"><b>${esc(sn.rank)}</b> · ${sn.xp} XP</span><button class="btn small cyan" data-act="ref">🔄</button></div>
-        <div class="small muted">Stand: ${ago(sn.at)}${p.err ? ' · ' + esc(p.err) : ''}</div>
+        <div class="small muted">Stand: ${ago(sn.at)}${p.err ? ' · ' + esc(p.err) : ''}${sn.today && sn.today.n ? ` · heute ${sn.today.n} Aufgaben (${Math.round(sn.today.ok / sn.today.n * 100)} % richtig)` : ''}</div>
         <div class="stats"><div class="stat"><div class="v">🔥 ${sn.streak}</div><div class="l">Tage-Serie</div></div><div class="stat"><div class="v">${sn.acc7 === null ? '–' : sn.acc7 + '%'}</div><div class="l">richtig (7 T.)</div></div><div class="stat"><div class="v">${sn.ok}</div><div class="l">richtig gesamt</div></div></div>
         <div class="days">${days.map((d) => `<div style="height:${(sn.days[d.k] || 0) / maxXp * 100}%"></div>`).join('')}</div>
         <div class="dlabels">${days.map((d) => `<span>${d.l}</span>`).join('')}</div>
@@ -260,22 +356,31 @@
         <div class="row" style="margin-top:8px"><input id="ct" maxlength="120" placeholder="Eigene Nachricht …" style="flex:1;font:inherit;border:3px solid var(--ink);border-radius:10px;padding:8px"><button class="btn small pink" data-act="cheerOwn">Senden</button></div>
       </div>
       ${[8, 9, 10].map((b) => { const list = TOP.filter((t) => t.band === b && sn.topics[t.id]); return list.length ? `<div class="panel plist"><h3>${BANDS[b]}</h3>${list.map((t) => { const a = sn.topics[t.id]; return `<div class="pi"><span class="n">${t.emoji} ${t.title}${a[5] ? ' 👑' : ''}</span><span class="bar ${a[0] >= 80 ? 'green' : 'pink'}"><i style="width:${a[0]}%"></i></span><span class="p">${a[0]}%</span></div>`; }).join('')}</div>` : ''; }).join('')}
+      ${single ? '<button class="btn white block" data-act="add">➕ Weiteres Kind koppeln</button>' : ''}
       ${standaloneHint()}
-      <button class="btn white block" style="margin-top:12px" data-act="unpair">Entkoppeln</button>`;
+      <button class="btn white block" style="margin-top:12px" data-act="unpair">Entkoppeln</button>
+      ${single ? modeButtons() : ''}`;
+    // ab jetzt gilt dieser Stand als "gesehen"
+    p.seen = { at: sn.at, tasks: sn.tasks, xp: sn.xp, stickers: sn.stickers, rank: sn.rank, topics: sn.topics };
+    save();
     setAct({
-      back, ref: () => refreshParent(true), unpair,
+      back, ref: () => refreshParent(p.topic, true), unpair, add: () => go('eltern/neu'), settings: () => go('settings'), ...modeActs(),
       cheer: (t) => sendCheer(t),
       cheerOwn: () => { const t = $('#ct').value.trim(); if (t) sendCheer(t); },
     });
-    if (!p.lastFetch || Date.now() - p.lastFetch > 60000) refreshParent(true);
+    if (!p.lastFetch || Date.now() - p.lastFetch > 60000) refreshParent(p.topic, true);
 
     async function sendCheer(text) {
-      try { await post(p, { type: 'cheer', text, from: 'Mama', at: Date.now() }); toast(`💌 Gesendet! ${sn.name} sieht sie beim nächsten Öffnen.`); }
+      try { await post(p, { type: 'cheer', text, from: 'Mama', at: Date.now() }); toast(`💌 Gesendet! ${esc(sn.name)} sieht sie beim nächsten Öffnen.`); }
       catch (e) { toast('Senden nicht möglich – Internet prüfen.'); }
     }
     function unpair() {
-      const m = modal(`<h2>Entkoppeln?</h2><p>Du siehst dann den Fortschritt nicht mehr.</p><div class="row"><button class="btn white grow" data-close>Abbrechen</button><button class="btn pink grow" id="up">Entkoppeln</button></div>`);
-      $('#up', m.el).onclick = () => { S.parent = null; save(); m.close(); viewParent(); };
+      const m = modal(`<h2>Entkoppeln?</h2><p>Du siehst dann den Fortschritt von ${esc(kidName(p))} nicht mehr.</p><div class="row"><button class="btn white grow" data-close>Abbrechen</button><button class="btn pink grow" id="up">Entkoppeln</button></div>`);
+      $('#up', m.el).onclick = () => {
+        S.parents = kids().filter((k) => k.topic !== p.topic);
+        if (!S.parents.length) S.parentMode = false;
+        save(); syncNative(); m.close(); go('eltern');
+      };
     }
   }
   function standaloneHint() {
@@ -312,5 +417,5 @@
     } catch (e) { m.close(); toast('Kamera nicht verfügbar. Bitte den Link einfügen oder mit der iPhone-Kamera scannen.', 5000); }
   }
 
-  root.FAMILY = { viewFamily, viewPair, viewParent, acceptPair, publish, checkCheers, refreshParent, snapshot, seal, open, tipsFor, sayTips: TIPS };
+  root.FAMILY = { viewFamily, viewPair, viewParent, acceptPair, publish, checkCheers, refreshParent, snapshot, seal, open, tipsFor, kids, kidName, syncNative, sayTips: TIPS };
 })(typeof window !== 'undefined' ? window : globalThis);

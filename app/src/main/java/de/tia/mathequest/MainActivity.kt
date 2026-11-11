@@ -186,6 +186,9 @@ class MainActivity : ComponentActivity() {
         // ---- Updates ----
         @JavascriptInterface fun version(): String = updater.currentVersion
         @JavascriptInterface fun edition(): String = BuildConfig.EDITION
+
+        // ---- Eltern-Benachrichtigungen ----
+        @JavascriptInterface fun setParentLinks(json: String) { ParentWorker.configure(this@MainActivity, json.take(20_000)) }
         @JavascriptInterface fun checkUpdate(manual: Boolean) = updater.check(manual)
         @JavascriptInterface fun updateState(): String = updater.state.toJson()
         @JavascriptInterface fun installUpdate() = runOnUiThread { updater.install() }

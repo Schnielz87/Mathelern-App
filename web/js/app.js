@@ -203,7 +203,9 @@
 
   // ================= Startseite =================
   function home() {
-    if (!S.onboarded && !S.parent) return onboarding();
+    const kidsN = window.FAMILY ? window.FAMILY.kids().length : 0;
+    if (S.parentMode && kidsN) return window.FAMILY.viewParent();
+    if (!S.onboarded) return onboarding();
     const r = rankIdx(S.xp), nextR = RANKS[r + 1];
     const prog = nextR ? (S.xp - RANKS[r][0]) / (nextR[0] - RANKS[r][0]) * 100 : 100;
     const todayXp = S.days[today()] || 0;
@@ -220,7 +222,7 @@
         <button class="back" data-act="go" data-arg="settings" aria-label="Einstellungen">⚙️</button>
       </div>
       ${UPD.pending ? `<div class="banner">✨ <span class="grow">Neues Update <b>${esc(UPD.pending.version)}</b> ist da!</span><button class="btn small pink" data-act="update">Holen</button></div>` : ''}
-      ${S.parent ? `<div class="banner">👀 <span class="grow">Fortschritt von <b>${esc((S.parent.snap && S.parent.snap.name) || 'deinem Kind')}</b> ansehen</span><button class="btn small pink" data-act="go" data-arg="eltern">Öffnen</button></div>` : ''}
+      ${kidsN ? `<div class="banner">👀 <span class="grow">Eltern-Ansicht: <b>${esc(window.FAMILY.kids().map(window.FAMILY.kidName).join(', '))}</b></span><button class="btn small pink" data-act="pmode">Öffnen</button></div>` : ''}
       ${showIOS ? `<div class="banner ios">📲 <span class="grow small">Als App installieren: unten auf <b>Teilen</b> ⬆️ tippen, dann <b>„Zum Home-Bildschirm“</b>.</span><button class="btn small white" data-act="iosok">OK</button></div>` : ''}
       <div class="panel" style="padding:12px">
         <div class="row small"><span class="grow">${rankName(r)}</span><span>${nextR ? `${S.xp} / ${nextR[0]} XP` : S.xp + ' XP'}</span></div>
@@ -250,6 +252,7 @@
       go: (a) => go(a), back,
       rec: () => (rec.act === 'learn' ? go('learn/' + rec.t.id) : startSession({ mode: 'practice', topic: rec.t.id })),
       update: () => showUpdate(UPD.pending),
+      pmode: () => { S.parentMode = true; save(); home(); },
       iosok: () => { sessionStorage.setItem('iosHint', '1'); home(); },
     };
     if (UPD.pending && !UPD.shown) { UPD.shown = true; showUpdate(UPD.pending); }
@@ -282,7 +285,7 @@
         toast(`Willkommen, ${esc(n)}! 🎉`);
         home();
       },
-      parent: () => go('eltern'),
+      parent: () => { if (window.FAMILY.kids().length) { S.parentMode = true; save(); home(); } else go('eltern'); },
     };
   }
 
@@ -961,7 +964,7 @@
   const ROUTES = {
     '': home, kapitel, topic: topicView, learn, album, formeln, progress, settings,
     practice: (id) => sessionRoute('practice', id), boss: (id) => sessionRoute('boss', id),
-    familie: () => window.FAMILY.viewFamily(), koppeln: () => window.FAMILY.viewPair(), eltern: () => window.FAMILY.viewParent(),
+    familie: () => window.FAMILY.viewFamily(), koppeln: () => window.FAMILY.viewPair(), eltern: (arg) => window.FAMILY.viewParent(arg),
     pair: (arg) => window.FAMILY.acceptPair(arg), frag: () => window.AI.viewChat(), ki: () => window.AI.viewSettings(),
     mission: () => sessionRoute('mission'), train: () => sessionRoute('train'), check: () => sessionRoute('check'), exam: () => sessionRoute('exam'),
   };
@@ -979,12 +982,12 @@
   $('#splashKiko').outerHTML = window.ART.kiko('cheer');
   window.APP = {
     get S() { return S; }, save, go, back, modal, toast, topbar, esc, byId, TOP, tp, RANKS, rankIdx, rankName, dayKey, BANDS, sound, startSession, NATIVE, VERSION,
-    app, setAct: (o) => { ACT = o; },
+    app, render, setAct: (o) => { ACT = o; },
   };
   const pairLink = location.hash.match(/^#\/pair\/(.+)$/);
   if (location.hash && location.hash !== '#/') { history.replaceState(null, '', '#/'); }
   if (pairLink) setTimeout(() => { history.pushState(null, '', '#/pair/' + pairLink[1]); render(); }, 3100);
-  setTimeout(() => { if (window.FAMILY) { window.FAMILY.publish(false); window.FAMILY.checkCheers(); } }, 5000);
+  setTimeout(() => { if (window.FAMILY) { window.FAMILY.publish(false); window.FAMILY.checkCheers(); window.FAMILY.syncNative(); } }, 5000);
   render();
   setTimeout(() => {
     const sp = $('#splash');

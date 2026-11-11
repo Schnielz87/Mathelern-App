@@ -17,6 +17,8 @@ class TiaApp : Application() {
         private set
     lateinit var tts: Speech
         private set
+    lateinit var store: SecureStore
+        private set
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override fun onCreate() {
@@ -26,7 +28,7 @@ class TiaApp : Application() {
             .connectTimeout(20, TimeUnit.SECONDS)
             .readTimeout(120, TimeUnit.SECONDS)
             .build()
-        val store = SecureStore(this)
+        store = SecureStore(this)
         ai = AiClient(store, http, ChatGptAuth(this, store, http, scope))
         tts = Speech(this)
         // Alle 24 Stunden im Hintergrund nach einer neuen Version schauen.
