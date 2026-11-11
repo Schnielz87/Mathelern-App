@@ -48,6 +48,14 @@ Das Eltern-Handy öffnet danach direkt die **Eltern-Ansicht** (über „Selbst l
   „⏰ … hat seit 3 Tagen nicht geübt“. Ein- und ausschalten unten in der Eltern-Ansicht.
 - **iPhone:** Statt Benachrichtigungen zeigt die App beim Öffnen „🎉 Seit deinem letzten Besuch: …“.
 
+**Mut-Nachrichten – wo findet das Kind sie?**
+- Beim Öffnen der App erscheint die Nachricht als Fenster („💌 Nachricht von Mama“). Mitten in einer Übung stört sie nicht,
+  sondern erscheint direkt nach der Runde.
+- Alle Nachrichten liegen im **💌 Briefkasten** auf der Startseite (mit Zähler für neue Nachrichten) und lassen sich dort
+  jederzeit nochmal lesen.
+- **Android:** Auch bei geschlossener App kommt stündlich eine Benachrichtigung „💌 Neue Nachricht von Mama“.
+- Mama sieht in der Eltern-Ansicht unter „Gesendet“, ob die Nachricht **✔✔ gelesen** wurde.
+
 Tias App sendet den Lernstand bei jedem Start und nach jeder Übungsrunde – **Ende-zu-Ende-verschlüsselt**
 (der Schlüssel steckt nur im QR-Code). Mamas App zeigt immer den zuletzt empfangenen Stand.
 

@@ -222,6 +222,7 @@
         <button class="back" data-act="go" data-arg="settings" aria-label="Einstellungen">⚙️</button>
       </div>
       ${UPD.pending ? `<div class="banner">✨ <span class="grow">Neues Update <b>${esc(UPD.pending.version)}</b> ist da!</span><button class="btn small pink" data-act="update">Holen</button></div>` : ''}
+      ${window.FAMILY && window.FAMILY.unread() ? `<div class="banner" style="background:#ffd0e3">💌 <span class="grow"><b>${window.FAMILY.unread()} neue Nachricht${window.FAMILY.unread() > 1 ? 'en' : ''}</b> von Mama/Papa!</span><button class="btn small pink" data-act="go" data-arg="post">Lesen</button></div>` : ''}
       ${kidsN ? `<div class="banner">👀 <span class="grow">Eltern-Ansicht: <b>${esc(window.FAMILY.kids().map(window.FAMILY.kidName).join(', '))}</b></span><button class="btn small pink" data-act="pmode">Öffnen</button></div>` : ''}
       ${showIOS ? `<div class="banner ios">📲 <span class="grow small">Als App installieren: unten auf <b>Teilen</b> ⬆️ tippen, dann <b>„Zum Home-Bildschirm“</b>.</span><button class="btn small white" data-act="iosok">OK</button></div>` : ''}
       <div class="panel" style="padding:12px">
@@ -243,6 +244,7 @@
         <button class="tile" data-act="go" data-arg="exam"><span class="e">🎓</span><span class="t">Prüfungs-Training</span><span class="s">Bunt gemischt</span></button>
         <button class="tile" data-act="go" data-arg="album"><span class="e">🃏</span><span class="t">Sammelalbum</span><span class="s">${Object.keys(S.stickers).length} / ${STICKERS.length}</span></button>
         <button class="tile" data-act="go" data-arg="frag"><span class="e">🦊</span><span class="t">Frag Kiko</span><span class="s">KI-Tutor & Hausaufgaben</span></button>
+        ${S.pair || (S.inbox && S.inbox.length) ? `<button class="tile" data-act="go" data-arg="post">${window.FAMILY.unread() ? `<span class="badge">${window.FAMILY.unread()}</span>` : ''}<span class="e">💌</span><span class="t">Briefkasten</span><span class="s">Nachrichten von Mama/Papa</span></button>` : ''}
         <button class="tile" data-act="go" data-arg="familie"><span class="e">👨‍👩‍👧</span><span class="t">Familie</span><span class="s">${S.pair ? '✔ gekoppelt' : 'mit Mama koppeln'}</span></button>
         <button class="tile" data-act="go" data-arg="formeln"><span class="e">📌</span><span class="t">Formeln</span><span class="s">Spickzettel</span></button>
         <button class="tile" data-act="go" data-arg="progress"><span class="e">📊</span><span class="t">Fortschritt</span><span class="s">auch für Eltern</span></button>
@@ -766,6 +768,7 @@
     const changes = Object.keys(s.startM).map((id) => `<div class="pi"><span class="n">${byId[id].emoji} ${byId[id].title}</span><span class="bar ${tp(id).m >= 80 ? 'green' : 'pink'}"><i style="width:${tp(id).m}%"></i></span><span class="p">${pct(tp(id).m)}%</span></div>`).join('');
     const stickers = newStickers.splice(0);
     window.FAMILY && window.FAMILY.publish(true);
+    setTimeout(() => window.FAMILY && window.FAMILY.showPending(), 2500);
     app.innerHTML = topbar(MODE_TITLE[s.mode]) + `
       <div class="panel result tilt">
         <div style="width:120px;margin:0 auto">${window.ART.kiko(mood)}</div>
@@ -965,7 +968,7 @@
     '': home, kapitel, topic: topicView, learn, album, formeln, progress, settings,
     practice: (id) => sessionRoute('practice', id), boss: (id) => sessionRoute('boss', id),
     familie: () => window.FAMILY.viewFamily(), koppeln: () => window.FAMILY.viewPair(), eltern: (arg) => window.FAMILY.viewParent(arg),
-    pair: (arg) => window.FAMILY.acceptPair(arg), frag: () => window.AI.viewChat(), ki: () => window.AI.viewSettings(),
+    pair: (arg) => window.FAMILY.acceptPair(arg), post: () => window.FAMILY.viewPost(), frag: () => window.AI.viewChat(), ki: () => window.AI.viewSettings(),
     mission: () => sessionRoute('mission'), train: () => sessionRoute('train'), check: () => sessionRoute('check'), exam: () => sessionRoute('exam'),
   };
   function render() {
@@ -982,12 +985,13 @@
   $('#splashKiko').outerHTML = window.ART.kiko('cheer');
   window.APP = {
     get S() { return S; }, save, go, back, modal, toast, topbar, esc, byId, TOP, tp, RANKS, rankIdx, rankName, dayKey, BANDS, sound, startSession, NATIVE, VERSION,
-    app, render, setAct: (o) => { ACT = o; },
+    app, render, setAct: (o) => { ACT = o; }, sessionActive: () => !!(SESS && !SESS.done && /^#\/(practice|mission|train|boss|check|exam)/.test(location.hash)),
   };
   const pairLink = location.hash.match(/^#\/pair\/(.+)$/);
   if (location.hash && location.hash !== '#/') { history.replaceState(null, '', '#/'); }
   if (pairLink) setTimeout(() => { history.pushState(null, '', '#/pair/' + pairLink[1]); render(); }, 3100);
-  setTimeout(() => { if (window.FAMILY) { window.FAMILY.publish(false); window.FAMILY.checkCheers(); window.FAMILY.syncNative(); } }, 5000);
+  setTimeout(() => { if (window.FAMILY) { window.FAMILY.publish(false); window.FAMILY.checkCheers(); window.FAMILY.syncNative(); window.FAMILY.syncChild(); } }, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && window.FAMILY) window.FAMILY.checkCheers(); });
   render();
   setTimeout(() => {
     const sp = $('#splash');

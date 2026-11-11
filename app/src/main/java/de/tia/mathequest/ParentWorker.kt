@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Base64
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -20,13 +19,8 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
-import javax.crypto.Cipher
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 /**
  * Eltern-Benachrichtigungen: schaut alle 3 Stunden nach dem verschluesselten Lernstand der gekoppelten Kinder
@@ -93,36 +87,9 @@ class ParentWorker(context: Context, params: WorkerParameters) : Worker(context,
         return c.timeInMillis
     }
 
-    /** Neuesten Lernstand vom Weiterleitungsdienst holen und entschluesseln. */
-    private fun latestSnap(topic: String, key: String): JSONObject? {
-        val conn = URL("https://ntfy.sh/$topic/json?poll=1&since=all").openConnection() as HttpURLConnection
-        conn.connectTimeout = 15000
-        conn.readTimeout = 20000
-        try {
-            if (conn.responseCode != 200) return null
-            var best: JSONObject? = null
-            conn.inputStream.bufferedReader().forEachLine { line ->
-                val m = runCatching { JSONObject(line) }.getOrNull() ?: return@forEachLine
-                if (m.optString("event") != "message") return@forEachLine
-                val o = decrypt(key, m.optString("message")) ?: return@forEachLine
-                if (o.optString("type") == "snap" && o.optLong("at") > (best?.optLong("at") ?: 0)) best = o
-            }
-            return best
-        } finally {
-            conn.disconnect()
-        }
-    }
-
-    private fun decrypt(key: String, text: String): JSONObject? {
-        if (!text.startsWith("tmq1:")) return null
-        return runCatching {
-            val flags = Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
-            val data = Base64.decode(text.substring(5), flags)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(Base64.decode(key, flags), "AES"), GCMParameterSpec(128, data, 0, 12))
-            JSONObject(String(cipher.doFinal(data, 12, data.size - 12), Charsets.UTF_8))
-        }.getOrNull()
-    }
+    /** Neuesten Lernstand holen (entschluesselt auf dem Geraet). */
+    private fun latestSnap(topic: String, key: String): JSONObject? =
+        Relay.fetchAll(topic, key).filter { it.optString("type") == "snap" }.maxByOrNull { it.optLong("at") }
 
     private fun notify(id: Int, title: String, text: String) {
         val ctx = applicationContext

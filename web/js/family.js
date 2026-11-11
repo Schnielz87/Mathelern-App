@@ -82,21 +82,80 @@
     catch (e) { p.err = 'Senden gerade nicht möglich (kein Internet?)'; save(); }
   }
 
-  /** Kind: neue Mut-Nachrichten der Eltern holen. */
-  async function checkCheers() {
-    const { S, save, modal, esc } = A();
+  // ---------------- Briefkasten (Kind) ----------------
+  const inSession = () => (A().sessionActive ? A().sessionActive() : /^#\/(practice|mission|train|boss|check|exam)/.test(location.hash));
+  const inbox = () => { const { S } = A(); if (!S.inbox) S.inbox = []; return S.inbox; };
+  const unread = () => inbox().filter((m) => !m.read).length;
+
+  /** Kind: neue Mut-Nachrichten holen und im Briefkasten speichern (gehen nicht mehr verloren). */
+  async function checkCheers(force) {
+    const { S, save } = A();
     const p = S.pair;
-    if (!p || !cryptoOk() || Date.now() - (p.lastPoll || 0) < 60 * 1000) return;
+    if (!p || !cryptoOk() || (!force && Date.now() - (p.lastPoll || 0) < 60 * 1000)) { showPending(); return; }
     p.lastPoll = Date.now();
     try {
-      const msgs = (await poll(p)).filter((m) => m.type === 'cheer' && m.at > (p.lastCheer || 0)).sort((a, b) => a.at - b.at);
-      if (!msgs.length) return;
-      p.lastCheer = msgs[msgs.length - 1].at; save();
-      const m = msgs[msgs.length - 1];
-      if (/^#\/(practice|mission|train|boss|check|exam)/.test(location.hash)) return;
-      modal(`${root.ART.kiko('wow')}<h2>💌 Nachricht von ${esc(m.from || 'Mama')}</h2><p style="font-size:22px;font-weight:900">${esc(m.text)}</p><button class="btn pink block" data-close>Danke! ❤️</button>`);
-      A().sound('win');
+      const box = inbox();
+      const fresh = (await poll(p)).filter((m) => m.type === 'cheer' && m.at > (p.lastCheer || 0) && !box.some((x) => x.at === m.at));
+      if (fresh.length) {
+        fresh.sort((x, y) => x.at - y.at).forEach((m) => box.push({ at: m.at, text: String(m.text || '').slice(0, 200), from: String(m.from || 'Mama').slice(0, 20), read: false }));
+        p.lastCheer = Math.max(...fresh.map((m) => m.at));
+        if (box.length > 50) box.splice(0, box.length - 50);
+        save();
+        syncChild();
+        if (location.hash === '#/' || location.hash === '') A().render();
+      }
     } catch (e) { /* später */ }
+    showPending();
+  }
+
+  /** Neueste ungelesene Nachricht als Fenster zeigen – aber nie mitten in einer Übung. */
+  function showPending() {
+    const { modal, esc, sound } = A();
+    if (inSession() || document.querySelector('.modal') || (root.BOARD && root.BOARD.isOpen())) return;
+    const m = inbox().filter((x) => !x.read && !x.popped).pop();
+    if (!m) return;
+    m.popped = true; A().save();
+    const n = unread();
+    const dlg = modal(`${root.ART.kiko('wow')}<h2>💌 Nachricht von ${esc(m.from)}</h2><p style="font-size:22px;font-weight:900">${esc(m.text)}</p>${n > 1 ? `<p class="small muted">Du hast ${n} neue Nachrichten im Briefkasten.</p>` : ''}<button class="btn pink block" data-close>Danke! ❤️</button>${n > 1 ? '<button class="btn white block" style="margin-top:8px" id="tobox">💌 Zum Briefkasten</button>' : ''}`,
+      () => markRead([m]));
+    const tb = $('#tobox', dlg.el); if (tb) tb.onclick = () => { dlg.close(); A().go('post'); };
+    sound('win');
+  }
+
+  /** Gelesen markieren und Mama/Papa eine Lesebestätigung schicken. */
+  function markRead(list) {
+    const { S, save } = A();
+    const changed = list.filter((m) => !m.read);
+    if (!changed.length) return;
+    changed.forEach((m) => { m.read = true; m.popped = true; });
+    save();
+    syncChild();
+    if (S.pair && cryptoOk()) post(S.pair, { type: 'read', upto: Math.max(...changed.map((m) => m.at)), at: Date.now() }).catch(() => {});
+  }
+
+  function viewPost() {
+    const { topbar, setAct, back, app, esc } = A();
+    const box = inbox().slice().reverse();
+    const when = (ts) => new Date(ts).toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    app.innerHTML = topbar('💌 Briefkasten') + (box.length ? box.map((m) => `
+      <div class="panel ${m.read ? '' : 'tilt'}" style="${m.read ? '' : 'background:#fff3c4'}">
+        <div class="small muted">${m.read ? '' : '🆕 '}von <b>${esc(m.from)}</b> · ${when(m.at)}</div>
+        <div style="font-size:20px;font-weight:900;margin-top:4px">${esc(m.text)}</div>
+      </div>`).join('') : `<div class="sensei">${root.ART.kiko('happy')}<div class="bubble">Noch keine Nachrichten. Wenn Mama oder Papa dir etwas schicken, findest du es hier! 💌${A().S.pair ? '' : '<br><br>Tipp: Unter <b>Familie</b> koppelst du die App mit Mama/Papa.'}</div></div>`);
+    markRead(inbox());
+    setAct({ back });
+    checkCheers(true).then(() => { if (location.hash === '#/post' && inbox().length !== box.length) viewPost(); });
+  }
+
+  /** Android: Kopplung des Kindes an die App geben, damit sie auch bei geschlossener App neue Nachrichten meldet. */
+  function syncChild() {
+    const N = root.TiaNative;
+    if (!N || !N.setChildLink) return;
+    const { S } = A();
+    try {
+      const last = inbox().reduce((x, m) => Math.max(x, m.at), (S.pair && S.pair.lastCheer) || 0);
+      N.setChildLink(S.pair ? JSON.stringify({ topic: S.pair.topic, key: S.pair.key, seen: last }) : '');
+    } catch (e) { /* egal */ }
   }
 
   // ---------------- Tipps für Eltern ----------------
@@ -172,7 +231,7 @@
   function viewPair() {
     const { S, save, topbar, setAct, back, app, toast, esc, modal } = A();
     if (!cryptoOk()) { app.innerHTML = topbar('Koppeln') + '<div class="panel">Dieses Gerät unterstützt keine Verschlüsselung.</div>'; setAct({ back }); return; }
-    if (!S.pair) { S.pair = { topic: newTopic(), key: b64u(rand(32)), at: Date.now() }; save(); }
+    if (!S.pair) { S.pair = { topic: newTopic(), key: b64u(rand(32)), at: Date.now() }; save(); syncChild(); }
     const p = S.pair, link = linkOf(p);
     app.innerHTML = topbar('📲 Mit Mama koppeln') + `
       <div class="panel center">
@@ -190,7 +249,7 @@
       send: async () => { await publish(true); toast(S.pair.err ? S.pair.err : 'Lernstand gesendet ✔'); viewPair(); },
       renew: () => {
         const m = modal(`${root.ART.kiko('think')}<h2>Neu koppeln?</h2><p>Der alte Code funktioniert dann nicht mehr. Mama/Papa müssen den neuen Code scannen.</p><div class="row"><button class="btn white grow" data-close>Abbrechen</button><button class="btn pink grow" id="rn">Neu</button></div>`);
-        $('#rn', m.el).onclick = () => { S.pair = null; save(); m.close(); viewPair(); };
+        $('#rn', m.el).onclick = () => { S.pair = null; save(); syncChild(); m.close(); viewPair(); };
       },
     });
     publish(true);
@@ -247,6 +306,7 @@
         const msgs = await poll(p);
         const snaps = msgs.filter((m) => m.type === 'snap').sort((a, b) => b.at - a.at);
         if (snaps[0] && (!p.snap || snaps[0].at > p.snap.at)) { p.snap = snaps[0]; p.name = snaps[0].name; }
+        msgs.filter((m) => m.type === 'read').forEach((m) => { p.readUpto = Math.max(p.readUpto || 0, Number(m.upto) || 0); });
         p.lastFetch = Date.now(); p.err = '';
       } catch (e) { p.err = 'Gerade keine Verbindung.'; }
     }
@@ -354,6 +414,7 @@
       <div class="panel"><h3>💌 Mut-Nachricht an ${esc(sn.name)}</h3>
         <div class="chips cheer">${['Super gemacht! 👍', 'Ich bin stolz auf dich! ❤️', 'Weiter so, du schaffst das! 💪', 'Heute Abend gibt\'s eine Belohnung! 🍕'].map((t) => `<button class="btn small white" data-act="cheer" data-arg="${esc(t)}">${esc(t)}</button>`).join('')}</div>
         <div class="row" style="margin-top:8px"><input id="ct" maxlength="120" placeholder="Eigene Nachricht …" style="flex:1;font:inherit;border:3px solid var(--ink);border-radius:10px;padding:8px"><button class="btn small pink" data-act="cheerOwn">Senden</button></div>
+        ${(p.sent || []).length ? `<h3 style="margin-top:14px;font-size:18px">Gesendet</h3>${p.sent.slice(-5).reverse().map((m) => `<div class="setting small"><span>„${esc(m.text)}“<br><span class="muted">${new Date(m.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span></span><b style="white-space:nowrap">${(p.readUpto || 0) >= m.at ? '✔✔ gelesen' : '✔ gesendet'}</b></div>`).join('')}` : ''}
       </div>
       ${[8, 9, 10].map((b) => { const list = TOP.filter((t) => t.band === b && sn.topics[t.id]); return list.length ? `<div class="panel plist"><h3>${BANDS[b]}</h3>${list.map((t) => { const a = sn.topics[t.id]; return `<div class="pi"><span class="n">${t.emoji} ${t.title}${a[5] ? ' 👑' : ''}</span><span class="bar ${a[0] >= 80 ? 'green' : 'pink'}"><i style="width:${a[0]}%"></i></span><span class="p">${a[0]}%</span></div>`; }).join('')}</div>` : ''; }).join('')}
       ${single ? '<button class="btn white block" data-act="add">➕ Weiteres Kind koppeln</button>' : ''}
@@ -371,8 +432,13 @@
     if (!p.lastFetch || Date.now() - p.lastFetch > 60000) refreshParent(p.topic, true);
 
     async function sendCheer(text) {
-      try { await post(p, { type: 'cheer', text, from: 'Mama', at: Date.now() }); toast(`💌 Gesendet! ${esc(sn.name)} sieht sie beim nächsten Öffnen.`); }
-      catch (e) { toast('Senden nicht möglich – Internet prüfen.'); }
+      const at = Date.now();
+      try {
+        await post(p, { type: 'cheer', text, from: 'Mama', at });
+        p.sent = [...(p.sent || []), { at, text }].slice(-20); save();
+        toast(`💌 Gesendet! ${esc(sn.name)} bekommt sie beim nächsten Öffnen${root.TiaNative ? '' : ''}.`);
+        viewKid(p);
+      } catch (e) { toast('Senden nicht möglich – Internet prüfen.'); }
     }
     function unpair() {
       const m = modal(`<h2>Entkoppeln?</h2><p>Du siehst dann den Fortschritt von ${esc(kidName(p))} nicht mehr.</p><div class="row"><button class="btn white grow" data-close>Abbrechen</button><button class="btn pink grow" id="up">Entkoppeln</button></div>`);
@@ -417,5 +483,5 @@
     } catch (e) { m.close(); toast('Kamera nicht verfügbar. Bitte den Link einfügen oder mit der iPhone-Kamera scannen.', 5000); }
   }
 
-  root.FAMILY = { viewFamily, viewPair, viewParent, acceptPair, publish, checkCheers, refreshParent, snapshot, seal, open, tipsFor, kids, kidName, syncNative, sayTips: TIPS };
+  root.FAMILY = { viewFamily, viewPair, viewParent, viewPost, unread, inbox, showPending, syncChild, acceptPair, publish, checkCheers, refreshParent, snapshot, seal, open, tipsFor, kids, kidName, syncNative, sayTips: TIPS };
 })(typeof window !== 'undefined' ? window : globalThis);
